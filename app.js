@@ -8,7 +8,7 @@ const DATABASE_ID = "6a902c4f0026523fc9c5";
 const TABLE_ID = "angebote_informatik";
 
 // ============================================================
-// Appwrite-Verbindung
+// APPWRITE VERBINDEN
 // ============================================================
 
 const client = new Appwrite.Client()
@@ -16,6 +16,10 @@ const client = new Appwrite.Client()
   .setProject(PROJECT_ID);
 
 const tablesDB = new Appwrite.TablesDB(client);
+
+// ============================================================
+// ELEMENTE DER WEBSEITE
+// ============================================================
 
 const offersEl = document.getElementById("offers");
 const statusEl = document.getElementById("status");
@@ -25,24 +29,18 @@ const facultyFilterEl = document.getElementById("facultyFilter");
 
 let allOffers = [];
 
-// Falls deine Spalten anders heißen, kannst du die Alternativen hier ergänzen.
-function valueOf(row, ...keys) {
-  for (const key of keys) {
-    if (row[key] !== undefined && row[key] !== null && row[key] !== "") {
-      return row[key];
-    }
-  }
-  return "";
-}
+// ============================================================
+// HILFSFUNKTIONEN
+// ============================================================
 
 function asText(value) {
   if (Array.isArray(value)) return value.join(", ");
   if (typeof value === "boolean") return value ? "Ja" : "Nein";
-  return value ? String(value) : "";
+  return value ?? "";
 }
 
 function escapeHtml(value) {
-  return asText(value)
+  return String(asText(value))
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
@@ -50,122 +48,244 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-function getFaculty(row) {
-  return asText(valueOf(row, "fakultaet", "Fakultät", "fakultät", "faculty"));
-}
+// ============================================================
+// DEINE APPWRITE-SPALTEN
+// ============================================================
 
 function getTitle(row) {
-  return asText(valueOf(row, "titel", "Titel", "title")) || "Unbenanntes Angebot";
+  return asText(row.Titel_des_Angebots) || "Unbenanntes Angebot";
 }
 
-function getDescription(row) {
-  return asText(
-    valueOf(
-      row,
-      "kurzbeschreibung",
-      "Kurzbeschreibung",
-      "beschreibung",
-      "Beschreibung",
-      "description"
-    )
-  );
+function getFaculty(row) {
+  return asText(row.Fakultaet);
+}
+
+function getMintArea(row) {
+  return asText(row.MINT_Bereich);
 }
 
 function getFormat(row) {
-  return asText(valueOf(row, "format", "Format")) || "MINT-Angebot";
+  return asText(row.Format) || "MINT-Angebot";
 }
 
+function getDescription(row) {
+  return asText(row.Beschreibung);
+}
+
+function getGrade(row) {
+  return asText(row.Klassenstufe);
+}
+
+function getCapacity(row) {
+  return asText(row.Platz_fuer_wie_viele);
+}
+
+function getLocation(row) {
+  return asText(row.Ort_Raum);
+}
+
+function getDuration(row) {
+  return asText(row.Dauer);
+}
+
+function getContactPerson(row) {
+  return asText(row.Ansprechperson);
+}
+
+function getContactMail(row) {
+  return asText(row.Kontakt_Mail);
+}
+
+// ============================================================
+// FAKULTÄTSFILTER
+// ============================================================
+
 function renderFacultyOptions() {
-  const faculties = [...new Set(allOffers.map(getFaculty).filter(Boolean))]
-    .sort((a, b) => a.localeCompare(b, "de"));
+
+  const faculties = [
+    ...new Set(
+      allOffers
+        .map(getFaculty)
+        .filter(Boolean)
+    )
+  ].sort((a, b) => a.localeCompare(b, "de"));
 
   facultyFilterEl.innerHTML =
     '<option value="">Alle Fakultäten</option>' +
     faculties
-      .map(faculty => `<option value="${escapeHtml(faculty)}">${escapeHtml(faculty)}</option>`)
+      .map(
+        faculty =>
+          `<option value="${escapeHtml(faculty)}">
+            ${escapeHtml(faculty)}
+          </option>`
+      )
       .join("");
 }
 
+// ============================================================
+// ANGEBOTE ANZEIGEN
+// ============================================================
+
 function renderOffers() {
-  const searchTerm = searchEl.value.trim().toLowerCase();
-  const selectedFaculty = facultyFilterEl.value;
+
+  const searchTerm =
+    searchEl.value.trim().toLowerCase();
+
+  const selectedFaculty =
+    facultyFilterEl.value;
 
   const filtered = allOffers.filter(row => {
+
     const searchableText = [
       getTitle(row),
       getDescription(row),
       getFaculty(row),
-      asText(valueOf(row, "mint_bereich", "MINT-Bereich", "mint_bereiche")),
-      asText(valueOf(row, "zielgruppe", "Zielgruppe", "zielgruppen")),
+      getMintArea(row),
       getFormat(row),
-      asText(valueOf(row, "anbieter", "Anbieter"))
+      getGrade(row),
+      getCapacity(row),
+      getLocation(row),
+      getDuration(row)
     ]
       .join(" ")
       .toLowerCase();
 
-    const matchesSearch = !searchTerm || searchableText.includes(searchTerm);
-    const matchesFaculty = !selectedFaculty || getFaculty(row) === selectedFaculty;
+    const matchesSearch =
+      !searchTerm ||
+      searchableText.includes(searchTerm);
+
+    const matchesFaculty =
+      !selectedFaculty ||
+      getFaculty(row) === selectedFaculty;
 
     return matchesSearch && matchesFaculty;
   });
 
   resultCountEl.textContent =
-    filtered.length === 1 ? "1 Angebot gefunden" : `${filtered.length} Angebote gefunden`;
+    filtered.length === 1
+      ? "1 Angebot gefunden"
+      : `${filtered.length} Angebote gefunden`;
 
   if (filtered.length === 0) {
-    offersEl.innerHTML = '<div class="empty">Keine passenden Angebote gefunden.</div>';
+
+    offersEl.innerHTML =
+      '<div class="empty">' +
+      'Keine passenden Angebote gefunden.' +
+      '</div>';
+
     return;
   }
 
-  offersEl.innerHTML = filtered.map(row => {
-    const title = escapeHtml(getTitle(row));
-    const description = escapeHtml(getDescription(row) || "Weitere Informationen folgen.");
-    const faculty = escapeHtml(getFaculty(row));
-    const format = escapeHtml(getFormat(row));
+  offersEl.innerHTML = filtered
+    .map(row => {
 
-    const mint = escapeHtml(
-      valueOf(row, "mint_bereich", "MINT-Bereich", "mint_bereiche")
-    );
-    const target = escapeHtml(
-      valueOf(row, "zielgruppe", "Zielgruppe", "zielgruppen")
-    );
-    const location = escapeHtml(valueOf(row, "ort", "Ort"));
-    const mode = escapeHtml(
-      valueOf(row, "durchfuehrung", "Durchführung", "durchführung")
-    );
+      const title =
+        escapeHtml(getTitle(row));
 
-    const metadata = [mint, target, mode, location]
-      .filter(Boolean)
-      .map(item => `<span>${item}</span>`)
-      .join("");
+      const faculty =
+        escapeHtml(getFaculty(row));
 
-    return `
-      <article class="card">
-        <div class="card-top">
-          <span class="badge">${format}</span>
-          ${faculty ? `<span class="faculty">${faculty}</span>` : ""}
-        </div>
-        <h3>${title}</h3>
-        <p class="description">${description}</p>
-        ${metadata ? `<div class="meta">${metadata}</div>` : ""}
-      </article>
-    `;
-  }).join("");
+      const format =
+        escapeHtml(getFormat(row));
+
+      const mint =
+        escapeHtml(getMintArea(row));
+
+      const description =
+        escapeHtml(
+          getDescription(row) ||
+          "Weitere Informationen folgen."
+        );
+
+      const grade =
+        escapeHtml(getGrade(row));
+
+      const capacity =
+        escapeHtml(getCapacity(row));
+
+      const location =
+        escapeHtml(getLocation(row));
+
+      const duration =
+        escapeHtml(getDuration(row));
+
+      const metadata = [
+        mint ? `🧪 ${mint}` : "",
+        grade ? `🎓 ${grade}` : "",
+        capacity ? `👥 ${capacity}` : "",
+        location ? `📍 ${location}` : "",
+        duration ? `🕐 ${duration}` : ""
+      ]
+        .filter(Boolean)
+        .map(item => `<span>${item}</span>`)
+        .join("");
+
+      return `
+        <article class="card">
+
+          <div class="card-top">
+
+            <span class="badge">
+              ${format}
+            </span>
+
+            ${
+              faculty
+                ? `<span class="faculty">
+                    ${faculty}
+                   </span>`
+                : ""
+            }
+
+          </div>
+
+          <h3>${title}</h3>
+
+          <p class="description">
+            ${description}
+          </p>
+
+          ${
+            metadata
+              ? `<div class="meta">
+                  ${metadata}
+                 </div>`
+              : ""
+          }
+
+        </article>
+      `;
+    })
+    .join("");
 }
 
-async function loadOffers() {
-  try {
-    statusEl.classList.remove("error");
-    statusEl.textContent = "Angebote werden geladen …";
+// ============================================================
+// ANGEBOTE AUS APPWRITE LADEN
+// ============================================================
 
-    const response = await tablesDB.listRows({
-      databaseId: DATABASE_ID,
-      tableId: TABLE_ID,
-      queries: [
-        Appwrite.Query.limit(100),
-        Appwrite.Query.orderDesc("$createdAt")
-      ]
-    });
+async function loadOffers() {
+
+  try {
+
+    statusEl.classList.remove("error");
+    statusEl.style.display = "block";
+
+    statusEl.textContent =
+      "Angebote werden geladen …";
+
+    const response =
+      await tablesDB.listRows({
+
+        databaseId: DATABASE_ID,
+
+        tableId: TABLE_ID,
+
+        queries: [
+          Appwrite.Query.limit(100),
+          Appwrite.Query.orderDesc("$createdAt")
+        ]
+
+      });
 
     allOffers = response.rows || [];
 
@@ -173,18 +293,47 @@ async function loadOffers() {
     renderOffers();
 
     statusEl.style.display = "none";
+
   } catch (error) {
-    console.error(error);
-    resultCountEl.textContent = "Fehler beim Laden";
-    statusEl.style.display = "block";
-    statusEl.classList.add("error");
+
+    console.error(
+      "Appwrite-Fehler:",
+      error
+    );
+
+    resultCountEl.textContent =
+      "Fehler beim Laden";
+
+    statusEl.style.display =
+      "block";
+
+    statusEl.classList.add(
+      "error"
+    );
+
     statusEl.innerHTML =
       "<strong>Die Angebote konnten noch nicht geladen werden.</strong><br>" +
-      "Prüfe Project-ID, Database-ID, Table-ID und die Leseberechtigungen der Tabelle.";
+      "Prüfe Project-ID, Database-ID, Table-ID und die Leseberechtigungen.";
+
   }
 }
 
-searchEl.addEventListener("input", renderOffers);
-facultyFilterEl.addEventListener("change", renderOffers);
+// ============================================================
+// SUCHE UND FILTER
+// ============================================================
+
+searchEl.addEventListener(
+  "input",
+  renderOffers
+);
+
+facultyFilterEl.addEventListener(
+  "change",
+  renderOffers
+);
+
+// ============================================================
+// LOS GEHT'S
+// ============================================================
 
 loadOffers();
