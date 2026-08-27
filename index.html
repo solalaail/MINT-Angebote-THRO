@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MINT-Angebote</title>
+  <meta name="description" content="MINT-Angebote der Hochschule durchsuchen">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="hero">
+    <div class="container">
+      <p class="eyebrow">MINT-Bibliothek</p>
+      <h1>MINT-Angebote entdecken</h1>
+      <p class="intro">Finde passende Workshops, Veranstaltungen und weitere Angebote der Hochschule.</p>
+
+      <div class="search-panel">
+        <label class="sr-only" for="search">Angebote durchsuchen</label>
+        <input id="search" type="search" placeholder="Nach Titel, Thema oder Beschreibung suchen …">
+
+        <label class="sr-only" for="facultyFilter">Fakultät filtern</label>
+        <select id="facultyFilter">
+          <option value="">Alle Fakultäten</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <main class="container main">
+    <div class="result-header">
+      <h2>Angebote</h2>
+      <p id="resultCount" aria-live="polite">Wird geladen …</p>
+    </div>
+
+    <div id="status" class="status">Angebote werden geladen …</div>
+    <section id="offers" class="grid" aria-live="polite"></section>
+  </main>
+
+  <footer class="container footer">
+    <p>MINT-Angebote der Hochschule</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/appwrite@17.0.0"></script>
+  <script src="app.js"></script>
+</body>
+</html>
