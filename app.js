@@ -8,16 +8,6 @@ const DATABASE_ID = "6a902c4f0026523fc9c5";
 const TABLE_ID = "angebote_informatik";
 
 // ============================================================
-// APPWRITE VERBINDEN
-// ============================================================
-
-const client = new Appwrite.Client()
-  .setEndpoint(APPWRITE_ENDPOINT)
-  .setProject(PROJECT_ID);
-
-const tablesDB = new Appwrite.TablesDB(client);
-
-// ============================================================
 // ELEMENTE DER WEBSEITE
 // ============================================================
 
@@ -101,7 +91,6 @@ function getContactMail(row) {
 // ============================================================
 
 function renderFacultyOptions() {
-
   const faculties = [
     ...new Set(
       allOffers
@@ -115,9 +104,7 @@ function renderFacultyOptions() {
     faculties
       .map(
         faculty =>
-          `<option value="${escapeHtml(faculty)}">
-            ${escapeHtml(faculty)}
-          </option>`
+          `<option value="${escapeHtml(faculty)}">${escapeHtml(faculty)}</option>`
       )
       .join("");
 }
@@ -127,15 +114,10 @@ function renderFacultyOptions() {
 // ============================================================
 
 function renderOffers() {
-
-  const searchTerm =
-    searchEl.value.trim().toLowerCase();
-
-  const selectedFaculty =
-    facultyFilterEl.value;
+  const searchTerm = searchEl.value.trim().toLowerCase();
+  const selectedFaculty = facultyFilterEl.value;
 
   const filtered = allOffers.filter(row => {
-
     const searchableText = [
       getTitle(row),
       getDescription(row),
@@ -151,12 +133,10 @@ function renderOffers() {
       .toLowerCase();
 
     const matchesSearch =
-      !searchTerm ||
-      searchableText.includes(searchTerm);
+      !searchTerm || searchableText.includes(searchTerm);
 
     const matchesFaculty =
-      !selectedFaculty ||
-      getFaculty(row) === selectedFaculty;
+      !selectedFaculty || getFaculty(row) === selectedFaculty;
 
     return matchesSearch && matchesFaculty;
   });
@@ -167,47 +147,24 @@ function renderOffers() {
       : `${filtered.length} Angebote gefunden`;
 
   if (filtered.length === 0) {
-
     offersEl.innerHTML =
-      '<div class="empty">' +
-      'Keine passenden Angebote gefunden.' +
-      '</div>';
-
+      '<div class="empty">Keine passenden Angebote gefunden.</div>';
     return;
   }
 
   offersEl.innerHTML = filtered
     .map(row => {
-
-      const title =
-        escapeHtml(getTitle(row));
-
-      const faculty =
-        escapeHtml(getFaculty(row));
-
-      const format =
-        escapeHtml(getFormat(row));
-
-      const mint =
-        escapeHtml(getMintArea(row));
-
-      const description =
-        escapeHtml(
-          getDescription(row) ||
-          "Weitere Informationen folgen."
-        );
-
-      const grade =
-        escapeHtml(getGrade(row));
-
-      const capacity =
-        escapeHtml(getCapacity(row));
-
-      const location =
-        escapeHtml(getLocation(row));
-
-      const duration =
-        escapeHtml(getDuration(row));
+      const title = escapeHtml(getTitle(row));
+      const faculty = escapeHtml(getFaculty(row));
+      const format = escapeHtml(getFormat(row));
+      const mint = escapeHtml(getMintArea(row));
+      const description = escapeHtml(
+        getDescription(row) || "Weitere Informationen folgen."
+      );
+      const grade = escapeHtml(getGrade(row));
+      const capacity = escapeHtml(getCapacity(row));
+      const location = escapeHtml(getLocation(row));
+      const duration = escapeHtml(getDuration(row));
 
       const metadata = [
         mint ? `🧪 ${mint}` : "",
@@ -224,32 +181,22 @@ function renderOffers() {
         <article class="card">
 
           <div class="card-top">
-
-            <span class="badge">
-              ${format}
-            </span>
+            <span class="badge">${format}</span>
 
             ${
               faculty
-                ? `<span class="faculty">
-                    ${faculty}
-                   </span>`
+                ? `<span class="faculty">${faculty}</span>`
                 : ""
             }
-
           </div>
 
           <h3>${title}</h3>
 
-          <p class="description">
-            ${description}
-          </p>
+          <p class="description">${description}</p>
 
           ${
             metadata
-              ? `<div class="meta">
-                  ${metadata}
-                 </div>`
+              ? `<div class="meta">${metadata}</div>`
               : ""
           }
 
@@ -260,34 +207,41 @@ function renderOffers() {
 }
 
 // ============================================================
-// ANGEBOTE AUS APPWRITE LADEN
+// ANGEBOTE DIREKT ÜBER APPWRITE REST API LADEN
 // ============================================================
 
 async function loadOffers() {
-
   try {
-
     statusEl.classList.remove("error");
     statusEl.style.display = "block";
+    statusEl.textContent = "Angebote werden geladen …";
 
-    statusEl.textContent =
-      "Angebote werden geladen …";
+    const url =
+      `${APPWRITE_ENDPOINT}/tablesdb/` +
+      `${encodeURIComponent(DATABASE_ID)}/tables/` +
+      `${encodeURIComponent(TABLE_ID)}/rows`;
 
-    const response =
-      await tablesDB.listRows({
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "X-Appwrite-Project": PROJECT_ID,
+        "X-Appwrite-Response-Format": "1.9.5"
+      }
+    });
 
-        databaseId: DATABASE_ID,
+    if (!response.ok) {
+      const errorText = await response.text();
 
-        tableId: TABLE_ID,
+      throw new Error(
+        `Appwrite antwortet mit ${response.status}: ${errorText}`
+      );
+    }
 
-        queries: [
-          Appwrite.Query.limit(100),
-          Appwrite.Query.orderDesc("$createdAt")
-        ]
+    const data = await response.json();
 
-      });
+    console.log("Appwrite Antwort:", data);
 
-    allOffers = response.rows || [];
+    allOffers = data.rows || [];
 
     renderFacultyOptions();
     renderOffers();
@@ -295,26 +249,16 @@ async function loadOffers() {
     statusEl.style.display = "none";
 
   } catch (error) {
+    console.error("Fehler beim Laden:", error);
 
-    console.error(
-      "Appwrite-Fehler:",
-      error
-    );
+    resultCountEl.textContent = "Fehler beim Laden";
 
-    resultCountEl.textContent =
-      "Fehler beim Laden";
-
-    statusEl.style.display =
-      "block";
-
-    statusEl.classList.add(
-      "error"
-    );
+    statusEl.style.display = "block";
+    statusEl.classList.add("error");
 
     statusEl.innerHTML =
-      "<strong>Die Angebote konnten noch nicht geladen werden.</strong><br>" +
-      "Prüfe Project-ID, Database-ID, Table-ID und die Leseberechtigungen.";
-
+      "<strong>Die Angebote konnten nicht geladen werden.</strong><br>" +
+      escapeHtml(error.message);
   }
 }
 
@@ -322,18 +266,11 @@ async function loadOffers() {
 // SUCHE UND FILTER
 // ============================================================
 
-searchEl.addEventListener(
-  "input",
-  renderOffers
-);
-
-facultyFilterEl.addEventListener(
-  "change",
-  renderOffers
-);
+searchEl.addEventListener("input", renderOffers);
+facultyFilterEl.addEventListener("change", renderOffers);
 
 // ============================================================
-// LOS GEHT'S
+// START
 // ============================================================
 
 loadOffers();
