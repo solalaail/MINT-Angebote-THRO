@@ -3,42 +3,274 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <title>MINT-Angebote</title>
-  <meta name="description" content="MINT-Angebote der Hochschule durchsuchen">
+
+  <meta
+    name="description"
+    content="MINT-Angebote der Hochschule durchsuchen"
+  >
+
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
+
   <header class="hero">
     <div class="container">
-      <p class="eyebrow">MINT-Bibliothek</p>
-      <h1>MINT-Angebote entdecken</h1>
-      <p class="intro">Finde passende Workshops, Führungen, Vorträge und weitere Angebote der Technischen Hochschule Rosenheim für deinen Schulbesuch.</p>
+
+      <p class="eyebrow">
+        MINT-Bibliothek
+      </p>
+
+      <h1>
+        MINT-Angebote entdecken
+      </h1>
+
+      <p class="intro">
+        Finde passende Workshops, Führungen, Vorträge
+        und weitere Angebote der Technischen Hochschule Rosenheim.
+      </p>
+
+
+      <!-- ===================================================
+           SUCHFELD
+           =================================================== -->
 
       <div class="search-panel">
-        <label class="sr-only" for="search">Angebote durchsuchen</label>
-        <input id="search" type="search" placeholder="Nach Titel, Thema oder Stichworten suchen …">
 
-        <label class="sr-only" for="facultyFilter">Fakultät filtern</label>
-        <select id="facultyFilter">
-          <option value="">Alle Fakultäten</option>
-        </select>
+        <label
+          class="sr-only"
+          for="search"
+        >
+          Angebote durchsuchen
+        </label>
+
+        <input
+          id="search"
+          type="search"
+          placeholder="Nach Titel, Thema oder Beschreibung suchen …"
+        >
+
       </div>
+
+
+      <!-- ===================================================
+           FILTER
+           =================================================== -->
+
+      <div class="filter-panel">
+
+        <!-- Fakultät -->
+
+        <div class="filter-group">
+
+          <label for="facultyFilter">
+            Fakultät
+          </label>
+
+          <select id="facultyFilter">
+
+            <option value="">
+              Alle Fakultäten
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <!-- MINT-Bereich -->
+
+        <div class="filter-group">
+
+          <label for="mintFilter">
+            MINT-Bereich
+          </label>
+
+          <select id="mintFilter">
+
+            <option value="">
+              Alle MINT-Bereiche
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <!-- Format -->
+
+        <div class="filter-group">
+
+          <label for="formatFilter">
+            Format
+          </label>
+
+          <select id="formatFilter">
+
+            <option value="">
+              Alle Formate
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <!-- Klassenstufe -->
+
+        <div class="filter-group">
+
+          <label for="gradeFilter">
+            Klassenstufe
+          </label>
+
+          <select id="gradeFilter">
+
+            <option value="">
+              Alle Klassenstufen
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <!-- Dauer -->
+
+        <div class="filter-group">
+
+          <label for="durationFilter">
+            Dauer
+          </label>
+
+          <select id="durationFilter">
+
+            <option value="">
+              Alle Dauern
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <!-- Personenanzahl -->
+
+        <div class="filter-group">
+
+          <label for="capacityFilter">
+            Personenanzahl
+          </label>
+
+          <select id="capacityFilter">
+
+            <option value="">
+              Alle Gruppengrößen
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <!-- Ort -->
+
+        <div class="filter-group">
+
+          <label for="locationFilter">
+            Ort
+          </label>
+
+          <select id="locationFilter">
+
+            <option value="">
+              Alle Orte
+            </option>
+
+          </select>
+
+        </div>
+
+      </div>
+
+
+      <!-- Filter zurücksetzen -->
+
+      <button
+        id="resetFilters"
+        class="reset-button"
+        type="button"
+      >
+        Filter zurücksetzen
+      </button>
+
     </div>
   </header>
 
+
+  <!-- =======================================================
+       ERGEBNISSE
+       ======================================================= -->
+
   <main class="container main">
+
     <div class="result-header">
-      <h2>Angebote</h2>
-      <p id="resultCount" aria-live="polite">Wird geladen …</p>
+
+      <h2>
+        Angebote
+      </h2>
+
+      <p
+        id="resultCount"
+        aria-live="polite"
+      >
+        Wird geladen …
+      </p>
+
     </div>
 
-    <div id="status" class="status">Angebote werden geladen …</div>
-    <section id="offers" class="grid" aria-live="polite"></section>
+
+    <div
+      id="status"
+      class="status"
+    >
+      Angebote werden geladen …
+    </div>
+
+
+    <section
+      id="offers"
+      class="grid"
+      aria-live="polite"
+    >
+    </section>
+
   </main>
 
+
+  <!-- =======================================================
+       FOOTER
+       ======================================================= -->
+
   <footer class="container footer">
-    <p>MINT-Angebote der Hochschule</p>
+
+    <p>
+      MINT-Angebote der Hochschule
+    </p>
+
   </footer>
+
+
+  <!-- =======================================================
+       JAVASCRIPT
+       ======================================================= -->
+
+  <script src="app.js"></script>
+
+</body>
+</html>
 
   <script src="https://cdn.jsdelivr.net/npm/appwrite@17.0.0"></script>
   <script src="app.js"></script>
