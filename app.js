@@ -177,8 +177,20 @@ function renderOffers() {
         .map(item => `<span>${item}</span>`)
         .join("");
 
-      return `
-        <article class="card">
+const facultyClass = {
+  "Informatik": "faculty-inf",
+  "Holztechnik_Bau_HTB": "faculty-htb",
+  "Angewandte_Natur_und_Geisteswissenschaften_ANG": "faculty-ang",
+  "Betriebswirtschaft": "faculty-bwl",
+  "Campus_Chiemgau": "faculty-chiemgau",
+  "Gesundheitswissenschaften_GSW": "faculty-gsw",
+  "Ingenieurswissenschaften": "faculty-ing",
+  "Wirtschaftsingenieurwesen_WI": "faculty-wi",
+  "Andere": "faculty-other"
+}[getFaculty(row)] || "faculty-other";
+
+return `
+  <article class="card ${facultyClass}">
 
           <div class="card-top">
             <span class="badge">${format}</span>
