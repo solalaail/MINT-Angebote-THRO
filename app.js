@@ -1,5 +1,5 @@
 // ============================================================
-// 1) HIER DEINE APPWRITE-DATEN EINTRAGEN
+// DEINE APPWRITE-DATEN
 // ============================================================
 
 const APPWRITE_ENDPOINT = "https://cloud.appwrite.io/v1";
