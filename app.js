@@ -3,9 +3,9 @@
 // ============================================================
 
 const APPWRITE_ENDPOINT = "https://cloud.appwrite.io/v1";
-const PROJECT_ID = "DEINE_PROJECT_ID";
-const DATABASE_ID = "DEINE_DATABASE_ID";
-const TABLE_ID = "DEINE_TABLE_ID";
+const PROJECT_ID = "6a902517000542f46530";
+const DATABASE_ID = "6a902c4f0026523fc9c5";
+const TABLE_ID = "angebote_informatik";
 
 // ============================================================
 // Appwrite-Verbindung
