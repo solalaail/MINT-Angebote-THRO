@@ -9,13 +9,11 @@
     content="width=device-width, initial-scale=1"
   >
 
-  <title>
-    MINT-Angebote
-  </title>
+  <title>MINT-Angebote</title>
 
   <meta
     name="description"
-    content="MINT-Angebote der TH Rosenheim durchsuchen"
+    content="MINT-Angebote der Hochschule durchsuchen und anfragen"
   >
 
   <link
@@ -35,26 +33,42 @@
 
     <div class="container">
 
-      <p class="eyebrow">
-        MINT-Bibliothek
-      </p>
+      <div class="hero-top">
+
+        <div>
+
+          <p class="eyebrow">
+            MINT-Bibliothek
+          </p>
+
+          <h1>
+            MINT-Angebote entdecken
+          </h1>
+
+        </div>
 
 
-      <h1>
-        MINT-Angebote entdecken
-      </h1>
+        <button
+          id="requestListButton"
+          class="request-list-button"
+          type="button"
+        >
+          Meine Anfrage
+          <span id="requestCount" class="request-count">
+            0
+          </span>
+        </button>
+
+      </div>
 
 
       <p class="intro">
-        Finde passende Workshops,
-        Vorträge oder Führungen und weitere
-        Angebote der Technischen Hochschule Rosenheim für deinen Schulbesuch
+        Finde passende Workshops, Laborführungen,
+        Veranstaltungen und weitere Angebote der Hochschule.
       </p>
 
 
-      <!-- ===================================================
-           SUCHFELD
-           =================================================== -->
+      <!-- Suche -->
 
       <div class="search-panel">
 
@@ -65,7 +79,6 @@
           Angebote durchsuchen
         </label>
 
-
         <input
           id="search"
           type="search"
@@ -75,9 +88,7 @@
       </div>
 
 
-      <!-- ===================================================
-           FILTER-BUTTON
-           =================================================== -->
+      <!-- Filter öffnen -->
 
       <button
         id="filterToggle"
@@ -90,17 +101,12 @@
       </button>
 
 
-      <!-- ===================================================
-           VERSTECKTER FILTERBEREICH
-           =================================================== -->
+      <!-- Filterbereich -->
 
       <div
         id="filterPanel"
         class="filter-panel filter-panel-hidden"
       >
-
-
-        <!-- Fakultät -->
 
         <div class="filter-group">
 
@@ -109,17 +115,13 @@
           </label>
 
           <select id="facultyFilter">
-
             <option value="">
               Alle Fakultäten
             </option>
-
           </select>
 
         </div>
 
-
-        <!-- MINT-Bereich -->
 
         <div class="filter-group">
 
@@ -128,17 +130,13 @@
           </label>
 
           <select id="mintFilter">
-
             <option value="">
               Alle MINT-Bereiche
             </option>
-
           </select>
 
         </div>
 
-
-        <!-- Format -->
 
         <div class="filter-group">
 
@@ -147,17 +145,13 @@
           </label>
 
           <select id="formatFilter">
-
             <option value="">
               Alle Formate
             </option>
-
           </select>
 
         </div>
 
-
-        <!-- Klassenstufe -->
 
         <div class="filter-group">
 
@@ -166,17 +160,13 @@
           </label>
 
           <select id="gradeFilter">
-
             <option value="">
               Alle Klassenstufen
             </option>
-
           </select>
 
         </div>
 
-
-        <!-- Dauer -->
 
         <div class="filter-group">
 
@@ -185,17 +175,13 @@
           </label>
 
           <select id="durationFilter">
-
             <option value="">
               Alle Dauern
             </option>
-
           </select>
 
         </div>
 
-
-        <!-- Personenanzahl -->
 
         <div class="filter-group">
 
@@ -204,17 +190,13 @@
           </label>
 
           <select id="capacityFilter">
-
             <option value="">
               Alle Gruppengrößen
             </option>
-
           </select>
 
         </div>
 
-
-        <!-- Ort -->
 
         <div class="filter-group">
 
@@ -223,17 +205,13 @@
           </label>
 
           <select id="locationFilter">
-
             <option value="">
               Alle Orte
             </option>
-
           </select>
 
         </div>
 
-
-        <!-- Filter zurücksetzen -->
 
         <div class="filter-actions">
 
@@ -255,7 +233,7 @@
 
 
   <!-- =====================================================
-       ERGEBNISSE
+       ANGEBOTE
        ===================================================== -->
 
   <main class="container main">
@@ -265,7 +243,6 @@
       <h2>
         Angebote
       </h2>
-
 
       <p
         id="resultCount"
@@ -277,8 +254,6 @@
     </div>
 
 
-    <!-- Lade-/Fehleranzeige -->
-
     <div
       id="status"
       class="status"
@@ -286,8 +261,6 @@
       Angebote werden geladen …
     </div>
 
-
-    <!-- Angebotskarten -->
 
     <section
       id="offers"
@@ -297,6 +270,240 @@
     </section>
 
   </main>
+
+
+  <!-- =====================================================
+       DETAILFENSTER
+       ===================================================== -->
+
+  <div
+    id="detailModal"
+    class="modal modal-hidden"
+    aria-hidden="true"
+  >
+
+    <div
+      class="modal-backdrop"
+      data-close-detail
+    ></div>
+
+
+    <div
+      class="modal-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="detailTitle"
+    >
+
+      <button
+        id="closeDetail"
+        class="modal-close"
+        type="button"
+        aria-label="Fenster schließen"
+      >
+        ×
+      </button>
+
+
+      <div id="detailContent">
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       ANFRAGELISTE
+       ===================================================== -->
+
+  <div
+    id="requestModal"
+    class="modal modal-hidden"
+    aria-hidden="true"
+  >
+
+    <div
+      class="modal-backdrop"
+      data-close-request
+    ></div>
+
+
+    <div
+      class="modal-dialog request-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="requestTitle"
+    >
+
+      <button
+        id="closeRequest"
+        class="modal-close"
+        type="button"
+        aria-label="Fenster schließen"
+      >
+        ×
+      </button>
+
+
+      <p class="eyebrow">
+        Sammelanfrage
+      </p>
+
+      <h2 id="requestTitle">
+        Meine Anfrage
+      </h2>
+
+
+      <p class="request-intro">
+        Hier kannst du mehrere Angebote sammeln und später
+        gemeinsam anfragen.
+      </p>
+
+
+      <div id="requestItems">
+      </div>
+
+
+      <div
+        id="requestFormArea"
+        class="request-form-area"
+      >
+
+        <h3>
+          Deine Angaben
+        </h3>
+
+
+        <form id="requestForm">
+
+          <div class="form-grid">
+
+            <div class="form-group">
+
+              <label for="requestName">
+                Name *
+              </label>
+
+              <input
+                id="requestName"
+                name="name"
+                type="text"
+                required
+              >
+
+            </div>
+
+
+            <div class="form-group">
+
+              <label for="requestEmail">
+                E-Mail *
+              </label>
+
+              <input
+                id="requestEmail"
+                name="email"
+                type="email"
+                required
+              >
+
+            </div>
+
+
+            <div class="form-group">
+
+              <label for="requestSchool">
+                Schule / Klasse
+              </label>
+
+              <input
+                id="requestSchool"
+                name="school"
+                type="text"
+                placeholder="z. B. Realschule Rosenheim, 9b"
+              >
+
+            </div>
+
+
+            <div class="form-group">
+
+              <label for="requestGroupSize">
+                Gruppengröße
+              </label>
+
+              <input
+                id="requestGroupSize"
+                name="groupSize"
+                type="text"
+                placeholder="z. B. 24 Personen"
+              >
+
+            </div>
+
+
+            <div class="form-group form-group-full">
+
+              <label for="requestDate">
+                Terminwunsch
+              </label>
+
+              <input
+                id="requestDate"
+                name="date"
+                type="text"
+                placeholder="z. B. Oktober 2026, vormittags"
+              >
+
+            </div>
+
+
+            <div class="form-group form-group-full">
+
+              <label for="requestMessage">
+                Nachricht
+              </label>
+
+              <textarea
+                id="requestMessage"
+                name="message"
+                rows="5"
+                placeholder="Weitere Hinweise oder Wünsche …"
+              ></textarea>
+
+            </div>
+
+          </div>
+
+
+          <button
+            class="primary-button request-submit"
+            type="submit"
+          >
+            Anfrage vorbereiten
+          </button>
+
+
+          <p class="form-note">
+            Der echte E-Mail-Versand wird im nächsten Schritt
+            mit Appwrite verbunden.
+          </p>
+
+        </form>
+
+      </div>
+
+
+      <div
+        id="requestSuccess"
+        class="success-message hidden"
+      >
+      </div>
+
+    </div>
+
+  </div>
 
 
   <!-- =====================================================
@@ -312,11 +519,11 @@
   </footer>
 
 
-  <!-- =====================================================
-       JAVASCRIPT
-       ===================================================== -->
-
   <script src="app.js"></script>
+
+</body>
+
+</html>
 
 </body>
 
