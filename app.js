@@ -6,45 +6,130 @@ const APPWRITE_ENDPOINT = "https://cloud.appwrite.io/v1";
 const PROJECT_ID = "6a902517000542f46530";
 const DATABASE_ID = "6a902c4f0026523fc9c5";
 const TABLE_ID = "angebote_informatik";
+// ============================================================
+// MINT-BIBLIOTHEK
+// ============================================================
+
+
+// ============================================================
+// 1. APPWRITE EINSTELLUNGEN
+// ============================================================
+
+
+
+// Bestehende Angebotstabelle
+
+const TABLE_ID =
+  "angebote_informatik";
+
+
+// Materialtabelle
+
+const MATERIALS_TABLE_ID =
+  "materialien";
+
+
+// Storage Bucket:
+// Kinderuni_Materialien
+
+const MATERIALS_BUCKET_ID =
+  "6a9fde2300387d9f36fb";
+
 
 // ============================================================
 // 2. ELEMENTE
 // ============================================================
 
-const offersEl = document.getElementById("offers");
-const statusEl = document.getElementById("status");
-const resultCountEl = document.getElementById("resultCount");
+const offersEl =
+  document.getElementById("offers");
 
-const searchEl = document.getElementById("search");
+const statusEl =
+  document.getElementById("status");
 
-const facultyFilterEl = document.getElementById("facultyFilter");
-const mintFilterEl = document.getElementById("mintFilter");
-const formatFilterEl = document.getElementById("formatFilter");
-const gradeFilterEl = document.getElementById("gradeFilter");
-const durationFilterEl = document.getElementById("durationFilter");
-const capacityFilterEl = document.getElementById("capacityFilter");
-const locationFilterEl = document.getElementById("locationFilter");
+const resultCountEl =
+  document.getElementById("resultCount");
 
-const resetFiltersEl = document.getElementById("resetFilters");
+const searchEl =
+  document.getElementById("search");
 
-const filterToggleEl = document.getElementById("filterToggle");
-const filterPanelEl = document.getElementById("filterPanel");
 
-const detailModalEl = document.getElementById("detailModal");
-const detailContentEl = document.getElementById("detailContent");
-const closeDetailEl = document.getElementById("closeDetail");
+// Filter
 
-const requestListButtonEl = document.getElementById("requestListButton");
-const requestCountEl = document.getElementById("requestCount");
+const facultyFilterEl =
+  document.getElementById("facultyFilter");
 
-const requestModalEl = document.getElementById("requestModal");
-const closeRequestEl = document.getElementById("closeRequest");
-const requestItemsEl = document.getElementById("requestItems");
-const requestFormAreaEl = document.getElementById("requestFormArea");
-const requestFormEl = document.getElementById("requestForm");
-const requestSuccessEl = document.getElementById("requestSuccess");
+const areaFilterEl =
+  document.getElementById("areaFilter");
+
+const formatFilterEl =
+  document.getElementById("formatFilter");
+
+const gradeFilterEl =
+  document.getElementById("gradeFilter");
+
+const durationFilterEl =
+  document.getElementById("durationFilter");
+
+const capacityFilterEl =
+  document.getElementById("capacityFilter");
+
+const locationFilterEl =
+  document.getElementById("locationFilter");
+
+const resetFiltersEl =
+  document.getElementById("resetFilters");
+
+const filterToggleEl =
+  document.getElementById("filterToggle");
+
+const filterPanelEl =
+  document.getElementById("filterPanel");
+
+
+// Detailfenster
+
+const detailModalEl =
+  document.getElementById("detailModal");
+
+const detailContentEl =
+  document.getElementById("detailContent");
+
+const closeDetailEl =
+  document.getElementById("closeDetail");
+
+
+// Anfrage
+
+const requestListButtonEl =
+  document.getElementById("requestListButton");
+
+const requestCountEl =
+  document.getElementById("requestCount");
+
+const requestModalEl =
+  document.getElementById("requestModal");
+
+const closeRequestEl =
+  document.getElementById("closeRequest");
+
+const requestItemsEl =
+  document.getElementById("requestItems");
+
+const requestFormAreaEl =
+  document.getElementById("requestFormArea");
+
+const requestFormEl =
+  document.getElementById("requestForm");
+
+const requestSuccessEl =
+  document.getElementById("requestSuccess");
+
+
+// Daten
 
 let allOffers = [];
+
+let allMaterials = [];
 
 let selectedOfferIds = [];
 
@@ -54,86 +139,267 @@ let selectedOfferIds = [];
 // ============================================================
 
 function asText(value) {
+
   if (Array.isArray(value)) {
     return value.join(", ");
   }
 
+
   if (typeof value === "boolean") {
-    return value ? "Ja" : "Nein";
+    return value
+      ? "Ja"
+      : "Nein";
   }
 
+
   return value ?? "";
+
 }
 
 
 function escapeHtml(value) {
-  return String(asText(value))
+
+  return String(
+    asText(value)
+  )
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+
 }
 
 
 // ============================================================
-// 4. DATENFELDER
+// 4. ANGEBOTSFELDER
 // ============================================================
 
 function getId(row) {
   return row.$id;
 }
 
+
 function getTitle(row) {
-  return asText(row.Titel_des_Angebots) || "Unbenanntes Angebot";
+
+  return (
+    asText(
+      row.Titel_des_Angebots
+    )
+    ||
+    "Unbenanntes Angebot"
+  );
+
 }
+
 
 function getFaculty(row) {
-  return asText(row.Fakultaet);
+  return asText(
+    row.Fakultaet
+  );
 }
 
-function getMintArea(row) {
-  return asText(row.MINT_Bereich);
+
+// WICHTIG:
+// Die Spalte heißt jetzt "Bereich"
+
+function getArea(row) {
+  return asText(
+    row.Bereich
+  );
 }
+
 
 function getFormat(row) {
-  return asText(row.Format) || "MINT-Angebot";
+
+  return (
+    asText(
+      row.Format
+    )
+    ||
+    "MINT-Angebot"
+  );
+
 }
+
 
 function getDescription(row) {
-  return asText(row.Beschreibung);
+  return asText(
+    row.Beschreibung
+  );
 }
+
 
 function getGrade(row) {
-  return asText(row.Klassenstufe);
+  return asText(
+    row.Klassenstufe
+  );
 }
+
 
 function getCapacity(row) {
-  return asText(row.Platz_fuer_wie_viele);
+  return asText(
+    row.Platz_fuer_wie_viele
+  );
 }
+
 
 function getLocation(row) {
-  return asText(row.Ort_Raum);
+  return asText(
+    row.Ort_Raum
+  );
 }
+
 
 function getDuration(row) {
-  return asText(row.Dauer);
+  return asText(
+    row.Dauer
+  );
 }
+
 
 function getContactPerson(row) {
-  return asText(row.Ansprechperson);
+  return asText(
+    row.Ansprechperson
+  );
 }
+
 
 function getContactMail(row) {
-  return asText(row.Kontakt_Mail);
+  return asText(
+    row.Kontakt_Mail
+  );
 }
 
 
 // ============================================================
-// 5. FAKULTÄTEN
+// 5. FORMAT SCHÖN ANZEIGEN
 // ============================================================
 
-function getFacultyLabel(faculty) {
+function getFormatLabel(format) {
+
+  const labels = {
+
+    "kinderuni":
+      "Kinderuni",
+
+    "Kinderuni":
+      "Kinderuni",
+
+    "workshop":
+      "Workshop",
+
+    "Workshop":
+      "Workshop",
+
+    "laborfuehrung":
+      "Laborführung",
+
+    "Laborfuehrung":
+      "Laborführung",
+
+    "Laborführung":
+      "Laborführung",
+
+    "vortrag":
+      "Vortrag",
+
+    "Vortrag":
+      "Vortrag"
+
+  };
+
+
+  return (
+    labels[format]
+    ||
+    format
+    ||
+    "MINT-Angebot"
+  );
+
+}
+
+
+// ============================================================
+// 6. MATERIALFELDER
+// ============================================================
+
+function getMaterialOfferId(row) {
+  return asText(
+    row.Angebot_ID
+  );
+}
+
+
+function getMaterialFileId(row) {
+  return asText(
+    row.Datei_ID
+  );
+}
+
+
+function getMaterialTitle(row) {
+
+  return (
+    asText(
+      row.Titel
+    )
+    ||
+    "Material"
+  );
+
+}
+
+
+function getMaterialsForOffer(
+  offerId
+) {
+
+  return allMaterials.filter(
+    material =>
+      getMaterialOfferId(
+        material
+      )
+      ===
+      offerId
+  );
+
+}
+
+
+// URL zur PDF
+
+function getMaterialUrl(
+  fileId
+) {
+
+  return (
+    `${APPWRITE_ENDPOINT}/storage/buckets/`
+    +
+    `${encodeURIComponent(
+      MATERIALS_BUCKET_ID
+    )}/files/`
+    +
+    `${encodeURIComponent(
+      fileId
+    )}/view`
+    +
+    `?project=${encodeURIComponent(
+      PROJECT_ID
+    )}`
+  );
+
+}
+
+
+// ============================================================
+// 7. FAKULTÄTEN
+// ============================================================
+
+function getFacultyLabel(
+  faculty
+) {
 
   const labels = {
 
@@ -166,11 +432,21 @@ function getFacultyLabel(faculty) {
 
   };
 
-  return labels[faculty] || faculty || "Andere";
+
+  return (
+    labels[faculty]
+    ||
+    faculty
+    ||
+    "Andere"
+  );
+
 }
 
 
-function getFacultyClass(faculty) {
+function getFacultyClass(
+  faculty
+) {
 
   const classes = {
 
@@ -203,15 +479,23 @@ function getFacultyClass(faculty) {
 
   };
 
-  return classes[faculty] || "faculty-other";
+
+  return (
+    classes[faculty]
+    ||
+    "faculty-other"
+  );
+
 }
 
 
 // ============================================================
-// 6. FILTEROPTIONEN
+// 8. FILTEROPTIONEN
 // ============================================================
 
-function getUniqueValues(getter) {
+function getUniqueValues(
+  getter
+) {
 
   return [
     ...new Set(
@@ -220,6 +504,7 @@ function getUniqueValues(getter) {
         .filter(Boolean)
     )
   ];
+
 }
 
 
@@ -231,43 +516,56 @@ function fillSelect(
 ) {
 
   const sortedValues =
-    [...values].sort((a, b) => {
+    [...values].sort(
+      (a, b) => {
 
-      const labelA =
-        labelFormatter
-          ? labelFormatter(a)
-          : a;
+        const labelA =
+          labelFormatter
+            ? labelFormatter(a)
+            : a;
 
-      const labelB =
-        labelFormatter
-          ? labelFormatter(b)
-          : b;
+        const labelB =
+          labelFormatter
+            ? labelFormatter(b)
+            : b;
 
-      return String(labelA).localeCompare(
-        String(labelB),
-        "de"
-      );
-    });
+
+        return String(
+          labelA
+        ).localeCompare(
+          String(labelB),
+          "de"
+        );
+
+      }
+    );
 
 
   selectElement.innerHTML =
-    `<option value="">${firstLabel}</option>` +
-
+    `<option value="">${firstLabel}</option>`
+    +
     sortedValues
-      .map(value => {
+      .map(
+        value => {
 
-        const label =
-          labelFormatter
-            ? labelFormatter(value)
-            : value;
+          const label =
+            labelFormatter
+              ? labelFormatter(value)
+              : value;
 
-        return `
-          <option value="${escapeHtml(value)}">
-            ${escapeHtml(label)}
-          </option>
-        `;
-      })
+
+          return `
+            <option
+              value="${escapeHtml(value)}"
+            >
+              ${escapeHtml(label)}
+            </option>
+          `;
+
+        }
+      )
       .join("");
+
 }
 
 
@@ -275,51 +573,73 @@ function renderFilterOptions() {
 
   fillSelect(
     facultyFilterEl,
-    getUniqueValues(getFaculty),
+    getUniqueValues(
+      getFaculty
+    ),
     "Alle Fakultäten",
     getFacultyLabel
   );
 
+
   fillSelect(
-    mintFilterEl,
-    getUniqueValues(getMintArea),
-    "Alle MINT-Bereiche"
+    areaFilterEl,
+    getUniqueValues(
+      getArea
+    ),
+    "Alle Bereiche"
   );
+
 
   fillSelect(
     formatFilterEl,
-    getUniqueValues(getFormat),
-    "Alle Formate"
+    getUniqueValues(
+      getFormat
+    ),
+    "Alle Formate",
+    getFormatLabel
   );
+
 
   fillSelect(
     gradeFilterEl,
-    getUniqueValues(getGrade),
+    getUniqueValues(
+      getGrade
+    ),
     "Alle Klassenstufen"
   );
 
+
   fillSelect(
     durationFilterEl,
-    getUniqueValues(getDuration),
+    getUniqueValues(
+      getDuration
+    ),
     "Alle Dauern"
   );
 
+
   fillSelect(
     capacityFilterEl,
-    getUniqueValues(getCapacity),
+    getUniqueValues(
+      getCapacity
+    ),
     "Alle Gruppengrößen"
   );
 
+
   fillSelect(
     locationFilterEl,
-    getUniqueValues(getLocation),
+    getUniqueValues(
+      getLocation
+    ),
     "Alle Orte"
   );
+
 }
 
 
 // ============================================================
-// 7. ANGEBOTE ANZEIGEN
+// 9. ANGEBOTE ANZEIGEN
 // ============================================================
 
 function renderOffers() {
@@ -333,8 +653,8 @@ function renderOffers() {
   const selectedFaculty =
     facultyFilterEl.value;
 
-  const selectedMint =
-    mintFilterEl.value;
+  const selectedArea =
+    areaFilterEl.value;
 
   const selectedFormat =
     formatFilterEl.value;
@@ -353,82 +673,126 @@ function renderOffers() {
 
 
   const filtered =
-    allOffers.filter(row => {
+    allOffers.filter(
+      row => {
 
-      const searchableText = [
-        getTitle(row),
-        getDescription(row),
-        getFaculty(row),
-        getFacultyLabel(getFaculty(row)),
-        getMintArea(row),
-        getFormat(row),
-        getGrade(row),
-        getCapacity(row),
-        getLocation(row),
-        getDuration(row)
-      ]
-        .join(" ")
-        .toLowerCase();
+        const searchableText = [
+
+          getTitle(row),
+
+          getDescription(row),
+
+          getFaculty(row),
+
+          getFacultyLabel(
+            getFaculty(row)
+          ),
+
+          getArea(row),
+
+          getFormat(row),
+
+          getFormatLabel(
+            getFormat(row)
+          ),
+
+          getGrade(row),
+
+          getCapacity(row),
+
+          getLocation(row),
+
+          getDuration(row)
+
+        ]
+          .join(" ")
+          .toLowerCase();
 
 
-      return (
+        return (
 
-        (
-          !searchTerm ||
-          searchableText.includes(searchTerm)
-        )
+          (
+            !searchTerm
+            ||
+            searchableText.includes(
+              searchTerm
+            )
+          )
 
-        &&
+          &&
 
-        (
-          !selectedFaculty ||
-          getFaculty(row) === selectedFaculty
-        )
+          (
+            !selectedFaculty
+            ||
+            getFaculty(row)
+            ===
+            selectedFaculty
+          )
 
-        &&
+          &&
 
-        (
-          !selectedMint ||
-          getMintArea(row) === selectedMint
-        )
+          (
+            !selectedArea
+            ||
+            getArea(row)
+            ===
+            selectedArea
+          )
 
-        &&
+          &&
 
-        (
-          !selectedFormat ||
-          getFormat(row) === selectedFormat
-        )
+          (
+            !selectedFormat
+            ||
+            getFormat(row)
+            ===
+            selectedFormat
+          )
 
-        &&
+          &&
 
-        (
-          !selectedGrade ||
-          getGrade(row) === selectedGrade
-        )
+          (
+            !selectedGrade
+            ||
+            getGrade(row)
+            ===
+            selectedGrade
+          )
 
-        &&
+          &&
 
-        (
-          !selectedDuration ||
-          getDuration(row) === selectedDuration
-        )
+          (
+            !selectedDuration
+            ||
+            getDuration(row)
+            ===
+            selectedDuration
+          )
 
-        &&
+          &&
 
-        (
-          !selectedCapacity ||
-          getCapacity(row) === selectedCapacity
-        )
+          (
+            !selectedCapacity
+            ||
+            getCapacity(row)
+            ===
+            selectedCapacity
+          )
 
-        &&
+          &&
 
-        (
-          !selectedLocation ||
-          getLocation(row) === selectedLocation
-        )
+          (
+            !selectedLocation
+            ||
+            getLocation(row)
+            ===
+            selectedLocation
+          )
 
-      );
-    });
+        );
+
+      }
+    );
 
 
   resultCountEl.textContent =
@@ -437,7 +801,9 @@ function renderOffers() {
       : `${filtered.length} Angebote gefunden`;
 
 
-  if (filtered.length === 0) {
+  if (
+    filtered.length === 0
+  ) {
 
     offersEl.innerHTML = `
       <div class="empty">
@@ -446,206 +812,251 @@ function renderOffers() {
     `;
 
     return;
+
   }
 
 
   offersEl.innerHTML =
     filtered
-      .map(row => {
+      .map(
+        row => {
 
-        const id =
-          escapeHtml(getId(row));
-
-        const title =
-          escapeHtml(getTitle(row));
-
-        const faculty =
-          getFaculty(row);
-
-        const facultyLabel =
-          escapeHtml(
-            getFacultyLabel(faculty)
-          );
-
-        const facultyClass =
-          getFacultyClass(faculty);
-
-        const format =
-          escapeHtml(getFormat(row));
-
-        const mint =
-          escapeHtml(getMintArea(row));
-
-        const description =
-          escapeHtml(
-            getDescription(row) ||
-            "Weitere Informationen folgen."
-          );
-
-        const grade =
-          escapeHtml(getGrade(row));
-
-        const capacity =
-          escapeHtml(getCapacity(row));
-
-        const location =
-          escapeHtml(getLocation(row));
-
-        const duration =
-          escapeHtml(getDuration(row));
+          const id =
+            escapeHtml(
+              getId(row)
+            );
 
 
-        const metadata = [
-
-          mint
-            ? `🧪 ${mint}`
-            : "",
-
-          grade
-            ? `🎓 ${grade}`
-            : "",
-
-          capacity
-            ? `👥 ${capacity}`
-            : "",
-
-          location
-            ? `📍 ${location}`
-            : "",
-
-          duration
-            ? `🕐 ${duration}`
-            : ""
-
-        ]
-          .filter(Boolean)
-          .map(
-            item =>
-              `<span>${item}</span>`
-          )
-          .join("");
+          const faculty =
+            getFaculty(row);
 
 
-        const isSelected =
-          selectedOfferIds.includes(
-            getId(row)
-          );
+          const facultyClass =
+            getFacultyClass(
+              faculty
+            );
 
 
-        return `
-          <article
-            class="card ${facultyClass}"
-            data-offer-id="${id}"
-            tabindex="0"
-            role="button"
-          >
-
-            <div class="card-top">
-
-              <span class="badge">
-                ${format}
-              </span>
-
-              <span class="faculty">
-                ${facultyLabel}
-              </span>
-
-            </div>
+          const materials =
+            getMaterialsForOffer(
+              getId(row)
+            );
 
 
-            <h3>
-              ${title}
-            </h3>
+          const metadata = [
+
+            getArea(row)
+              ? `🧪 ${escapeHtml(
+                  getArea(row)
+                )}`
+              : "",
+
+            getGrade(row)
+              ? `🎓 ${escapeHtml(
+                  getGrade(row)
+                )}`
+              : "",
+
+            getCapacity(row)
+              ? `👥 ${escapeHtml(
+                  getCapacity(row)
+                )}`
+              : "",
+
+            getLocation(row)
+              ? `📍 ${escapeHtml(
+                  getLocation(row)
+                )}`
+              : "",
+
+            getDuration(row)
+              ? `🕐 ${escapeHtml(
+                  getDuration(row)
+                )}`
+              : ""
+
+          ]
+            .filter(Boolean)
+            .map(
+              item =>
+                `<span>${item}</span>`
+            )
+            .join("");
 
 
-            <p class="description">
-              ${description}
-            </p>
+          const isSelected =
+            selectedOfferIds.includes(
+              getId(row)
+            );
 
 
-            ${
-              metadata
-                ? `
-                  <div class="meta">
-                    ${metadata}
-                  </div>
-                `
-                : ""
-            }
+          return `
+
+            <article
+              class="card ${facultyClass}"
+              data-offer-id="${id}"
+              tabindex="0"
+              role="button"
+            >
+
+              <div class="card-top">
+
+                <span class="badge">
+
+                  ${escapeHtml(
+                    getFormatLabel(
+                      getFormat(row)
+                    )
+                  )}
+
+                </span>
 
 
-            <div class="card-footer">
+                <span class="faculty">
 
-              <span class="details-link">
-                Details ansehen →
-              </span>
+                  ${escapeHtml(
+                    getFacultyLabel(
+                      faculty
+                    )
+                  )}
+
+                </span>
+
+              </div>
+
+
+              <h3>
+                ${escapeHtml(
+                  getTitle(row)
+                )}
+              </h3>
+
+
+              <p class="description">
+
+                ${escapeHtml(
+                  getDescription(row)
+                  ||
+                  "Weitere Informationen folgen."
+                )}
+
+              </p>
+
 
               ${
-                isSelected
+                metadata
                   ? `
-                    <span class="selected-label">
-                      ✓ Vorgemerkt
-                    </span>
+                    <div class="meta">
+                      ${metadata}
+                    </div>
                   `
                   : ""
               }
 
-            </div>
 
-          </article>
-        `;
-      })
+              <div class="card-footer">
+
+                <span class="details-link">
+                  Details ansehen →
+                </span>
+
+
+                <div class="card-statuses">
+
+                  ${
+                    materials.length > 0
+                      ? `
+                        <span class="material-label">
+                          📄 ${materials.length}
+                        </span>
+                      `
+                      : ""
+                  }
+
+
+                  ${
+                    isSelected
+                      ? `
+                        <span class="selected-label">
+                          ✓ Vorgemerkt
+                        </span>
+                      `
+                      : ""
+                  }
+
+                </div>
+
+              </div>
+
+            </article>
+
+          `;
+
+        }
+      )
       .join("");
 
 
   document
-    .querySelectorAll(".card")
-    .forEach(card => {
+    .querySelectorAll(
+      ".card"
+    )
+    .forEach(
+      card => {
 
-      card.addEventListener(
-        "click",
-        () => {
-          openOfferDetails(
-            card.dataset.offerId
-          );
-        }
-      );
-
-
-      card.addEventListener(
-        "keydown",
-        event => {
-
-          if (
-            event.key === "Enter" ||
-            event.key === " "
-          ) {
-
-            event.preventDefault();
+        card.addEventListener(
+          "click",
+          () => {
 
             openOfferDetails(
               card.dataset.offerId
             );
 
           }
+        );
 
-        }
-      );
 
-    });
+        card.addEventListener(
+          "keydown",
+          event => {
+
+            if (
+              event.key === "Enter"
+              ||
+              event.key === " "
+            ) {
+
+              event.preventDefault();
+
+              openOfferDetails(
+                card.dataset.offerId
+              );
+
+            }
+
+          }
+        );
+
+      }
+    );
+
 }
 
 
 // ============================================================
-// 8. DETAILFENSTER
+// 10. DETAILFENSTER
 // ============================================================
 
-function openOfferDetails(id) {
+function openOfferDetails(
+  id
+) {
 
   const row =
     allOffers.find(
       offer =>
-        getId(offer) === id
+        getId(offer)
+        ===
+        id
     );
 
 
@@ -657,58 +1068,192 @@ function openOfferDetails(id) {
   const faculty =
     getFaculty(row);
 
+
   const facultyClass =
-    getFacultyClass(faculty);
+    getFacultyClass(
+      faculty
+    );
+
 
   const contactPerson =
     getContactPerson(row);
 
+
   const isSelected =
-    selectedOfferIds.includes(id);
+    selectedOfferIds.includes(
+      id
+    );
+
+
+  const materials =
+    getMaterialsForOffer(
+      id
+    );
+
+
+  const materialsHtml =
+    materials.length > 0
+      ? `
+
+        <section class="materials-section">
+
+          <div class="materials-heading">
+
+            <div>
+
+              <p class="section-kicker">
+                Materialien
+              </p>
+
+              <h3>
+                Begleitmaterial
+              </h3>
+
+            </div>
+
+
+            <span class="materials-count">
+              ${materials.length}
+            </span>
+
+          </div>
+
+
+          <div class="materials-list">
+
+            ${materials
+              .map(
+                material => {
+
+                  const title =
+                    getMaterialTitle(
+                      material
+                    );
+
+
+                  const fileId =
+                    getMaterialFileId(
+                      material
+                    );
+
+
+                  const url =
+                    getMaterialUrl(
+                      fileId
+                    );
+
+
+                  return `
+
+                    <a
+                      class="material-item"
+                      href="${escapeHtml(url)}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+
+                      <span class="material-icon">
+                        PDF
+                      </span>
+
+
+                      <span class="material-info">
+
+                        <strong>
+                          ${escapeHtml(title)}
+                        </strong>
+
+                        <span>
+                          PDF öffnen →
+                        </span>
+
+                      </span>
+
+                    </a>
+
+                  `;
+
+                }
+              )
+              .join("")}
+
+          </div>
+
+        </section>
+
+      `
+      : "";
 
 
   detailContentEl.innerHTML = `
 
     <div class="detail-card ${facultyClass}">
 
+
       <div class="card-top">
 
         <span class="badge">
-          ${escapeHtml(getFormat(row))}
+
+          ${escapeHtml(
+            getFormatLabel(
+              getFormat(row)
+            )
+          )}
+
         </span>
 
+
         <span class="faculty">
+
           ${escapeHtml(
-            getFacultyLabel(faculty)
+            getFacultyLabel(
+              faculty
+            )
           )}
+
         </span>
 
       </div>
 
 
       <h2 id="detailTitle">
-        ${escapeHtml(getTitle(row))}
+
+        ${escapeHtml(
+          getTitle(row)
+        )}
+
       </h2>
 
 
       <p class="detail-description">
+
         ${escapeHtml(
-          getDescription(row) ||
+          getDescription(row)
+          ||
           "Weitere Informationen folgen."
         )}
+
       </p>
 
 
       <div class="detail-meta">
 
+
         ${
-          getMintArea(row)
+          getArea(row)
             ? `
               <div>
-                <strong>MINT-Bereich</strong>
+
+                <strong>
+                  Bereich
+                </strong>
+
                 <span>
-                  ${escapeHtml(getMintArea(row))}
+                  ${escapeHtml(
+                    getArea(row)
+                  )}
                 </span>
+
               </div>
             `
             : ""
@@ -719,10 +1264,17 @@ function openOfferDetails(id) {
           getGrade(row)
             ? `
               <div>
-                <strong>Klassenstufe</strong>
+
+                <strong>
+                  Klassenstufe
+                </strong>
+
                 <span>
-                  ${escapeHtml(getGrade(row))}
+                  ${escapeHtml(
+                    getGrade(row)
+                  )}
                 </span>
+
               </div>
             `
             : ""
@@ -733,10 +1285,17 @@ function openOfferDetails(id) {
           getCapacity(row)
             ? `
               <div>
-                <strong>Personenanzahl</strong>
+
+                <strong>
+                  Personenanzahl
+                </strong>
+
                 <span>
-                  ${escapeHtml(getCapacity(row))}
+                  ${escapeHtml(
+                    getCapacity(row)
+                  )}
                 </span>
+
               </div>
             `
             : ""
@@ -747,10 +1306,17 @@ function openOfferDetails(id) {
           getDuration(row)
             ? `
               <div>
-                <strong>Dauer</strong>
+
+                <strong>
+                  Dauer
+                </strong>
+
                 <span>
-                  ${escapeHtml(getDuration(row))}
+                  ${escapeHtml(
+                    getDuration(row)
+                  )}
                 </span>
+
               </div>
             `
             : ""
@@ -761,10 +1327,17 @@ function openOfferDetails(id) {
           getLocation(row)
             ? `
               <div>
-                <strong>Ort</strong>
+
+                <strong>
+                  Ort
+                </strong>
+
                 <span>
-                  ${escapeHtml(getLocation(row))}
+                  ${escapeHtml(
+                    getLocation(row)
+                  )}
                 </span>
+
               </div>
             `
             : ""
@@ -773,19 +1346,25 @@ function openOfferDetails(id) {
       </div>
 
 
+      ${materialsHtml}
+
+
       <div class="contact-box">
 
         <p>
+
           Für dieses Angebot ist
+
           <strong>
-            ${
-              escapeHtml(
-                contactPerson ||
-                "die zuständige Ansprechperson"
-              )
-            }
+            ${escapeHtml(
+              contactPerson
+              ||
+              "die zuständige Ansprechperson"
+            )}
           </strong>
+
           zuständig.
+
         </p>
 
       </div>
@@ -800,14 +1379,17 @@ function openOfferDetails(id) {
         }"
         type="button"
       >
+
         ${
           isSelected
             ? "Aus meiner Anfrage entfernen"
             : "Zur Anfrage hinzufügen"
         }
+
       </button>
 
     </div>
+
   `;
 
 
@@ -821,9 +1403,13 @@ function openOfferDetails(id) {
     "click",
     () => {
 
-      toggleOfferSelection(id);
+      toggleOfferSelection(
+        id
+      );
 
-      openOfferDetails(id);
+      openOfferDetails(
+        id
+      );
 
     }
   );
@@ -833,14 +1419,17 @@ function openOfferDetails(id) {
     "modal-hidden"
   );
 
+
   detailModalEl.setAttribute(
     "aria-hidden",
     "false"
   );
 
+
   document.body.classList.add(
     "modal-open"
   );
+
 }
 
 
@@ -850,19 +1439,22 @@ function closeOfferDetails() {
     "modal-hidden"
   );
 
+
   detailModalEl.setAttribute(
     "aria-hidden",
     "true"
   );
 
+
   document.body.classList.remove(
     "modal-open"
   );
+
 }
 
 
 // ============================================================
-// 9. ANFRAGELISTE / MERKLISTE
+// 11. MERKLISTE SPEICHERN
 // ============================================================
 
 function loadSavedSelection() {
@@ -878,7 +1470,9 @@ function loadSavedSelection() {
     if (saved) {
 
       selectedOfferIds =
-        JSON.parse(saved);
+        JSON.parse(
+          saved
+        );
 
     }
 
@@ -891,6 +1485,7 @@ function loadSavedSelection() {
       error
     );
 
+
     selectedOfferIds = [];
 
   }
@@ -901,19 +1496,30 @@ function loadSavedSelection() {
 function saveSelection() {
 
   localStorage.setItem(
+
     "mintRequestList",
+
     JSON.stringify(
       selectedOfferIds
     )
+
   );
 
 }
 
 
-function toggleOfferSelection(id) {
+// ============================================================
+// 12. MERKLISTE
+// ============================================================
+
+function toggleOfferSelection(
+  id
+) {
 
   if (
-    selectedOfferIds.includes(id)
+    selectedOfferIds.includes(
+      id
+    )
   ) {
 
     selectedOfferIds =
@@ -926,7 +1532,9 @@ function toggleOfferSelection(id) {
 
   else {
 
-    selectedOfferIds.push(id);
+    selectedOfferIds.push(
+      id
+    );
 
   }
 
@@ -942,7 +1550,9 @@ function toggleOfferSelection(id) {
 }
 
 
-function removeOfferFromRequest(id) {
+function removeOfferFromRequest(
+  id
+) {
 
   selectedOfferIds =
     selectedOfferIds.filter(
@@ -983,10 +1593,15 @@ function getSelectedOffers() {
 
 
 // ============================================================
-// 10. ANFRAGEFENSTER
+// 13. ANFRAGEFENSTER
 // ============================================================
 
 function openRequestModal() {
+
+  requestSuccessEl.classList.add(
+    "hidden"
+  );
+
 
   renderRequestList();
 
@@ -995,14 +1610,17 @@ function openRequestModal() {
     "modal-hidden"
   );
 
+
   requestModalEl.setAttribute(
     "aria-hidden",
     "false"
   );
 
+
   document.body.classList.add(
     "modal-open"
   );
+
 }
 
 
@@ -1012,14 +1630,17 @@ function closeRequestModal() {
     "modal-hidden"
   );
 
+
   requestModalEl.setAttribute(
     "aria-hidden",
     "true"
   );
 
+
   document.body.classList.remove(
     "modal-open"
   );
+
 }
 
 
@@ -1029,7 +1650,9 @@ function renderRequestList() {
     getSelectedOffers();
 
 
-  if (selected.length === 0) {
+  if (
+    selected.length === 0
+  ) {
 
     requestItemsEl.innerHTML = `
 
@@ -1045,6 +1668,7 @@ function renderRequestList() {
         </p>
 
       </div>
+
     `;
 
 
@@ -1052,7 +1676,9 @@ function renderRequestList() {
       "hidden"
     );
 
+
     return;
+
   }
 
 
@@ -1063,49 +1689,64 @@ function renderRequestList() {
 
   requestItemsEl.innerHTML =
     selected
-      .map(row => {
+      .map(
+        row => {
 
-        return `
+          return `
 
-          <div class="request-item">
+            <div class="request-item">
 
-            <div>
+              <div>
 
-              <span class="request-item-format">
-                ${escapeHtml(getFormat(row))}
-              </span>
+                <span class="request-item-format">
 
-              <h3>
-                ${escapeHtml(getTitle(row))}
-              </h3>
+                  ${escapeHtml(
+                    getFormatLabel(
+                      getFormat(row)
+                    )
+                  )}
 
-              <p>
-                ${
-                  escapeHtml(
+                </span>
+
+
+                <h3>
+
+                  ${escapeHtml(
+                    getTitle(row)
+                  )}
+
+                </h3>
+
+
+                <p>
+
+                  ${escapeHtml(
                     getFacultyLabel(
                       getFaculty(row)
                     )
-                  )
-                }
-              </p>
+                  )}
+
+                </p>
+
+              </div>
+
+
+              <button
+                class="remove-request-item"
+                type="button"
+                data-remove-id="${escapeHtml(
+                  getId(row)
+                )}"
+              >
+                Entfernen
+              </button>
 
             </div>
 
+          `;
 
-            <button
-              class="remove-request-item"
-              type="button"
-              data-remove-id="${escapeHtml(
-                getId(row)
-              )}"
-            >
-              Entfernen
-            </button>
-
-          </div>
-
-        `;
-      })
+        }
+      )
       .join("");
 
 
@@ -1113,28 +1754,33 @@ function renderRequestList() {
     .querySelectorAll(
       "[data-remove-id]"
     )
-    .forEach(button => {
+    .forEach(
+      button => {
 
-      button.addEventListener(
-        "click",
-        () => {
+        button.addEventListener(
+          "click",
+          () => {
 
-          removeOfferFromRequest(
-            button.dataset.removeId
-          );
+            removeOfferFromRequest(
+              button.dataset.removeId
+            );
 
-        }
-      );
+          }
+        );
 
-    });
+      }
+    );
+
 }
 
 
 // ============================================================
-// 11. FORMULAR – VORERST TESTVERSION
+// 14. FORMULAR – AKTUELL NOCH TESTVERSION
 // ============================================================
 
-function handleRequestSubmit(event) {
+function handleRequestSubmit(
+  event
+) {
 
   event.preventDefault();
 
@@ -1143,7 +1789,9 @@ function handleRequestSubmit(event) {
     getSelectedOffers();
 
 
-  if (selected.length === 0) {
+  if (
+    selected.length === 0
+  ) {
     return;
   }
 
@@ -1155,7 +1803,9 @@ function handleRequestSubmit(event) {
 
 
   const name =
-    formData.get("name");
+    formData.get(
+      "name"
+    );
 
 
   requestSuccessEl.classList.remove(
@@ -1169,15 +1819,17 @@ function handleRequestSubmit(event) {
       Anfrage ist vorbereitet ✓
     </strong>
 
+
     <p>
       Danke ${escapeHtml(name)}.
       Deine Auswahl und deine Angaben wurden korrekt erfasst.
     </p>
 
+
     <p>
-      Im nächsten Schritt verbinden wir diesen Button
-      mit Appwrite, damit die Anfrage automatisch
-      an die hinterlegten Ansprechpartner verschickt wird.
+      Der tatsächliche Versand an die hinterlegten
+      Kontaktpersonen wird im nächsten Schritt
+      über Appwrite angebunden.
     </p>
 
   `;
@@ -1186,7 +1838,7 @@ function handleRequestSubmit(event) {
 
 
 // ============================================================
-// 12. FILTER
+// 15. FILTER EIN-/AUSKLAPPEN
 // ============================================================
 
 function toggleFilterPanel() {
@@ -1203,10 +1855,12 @@ function toggleFilterPanel() {
       "filter-panel-hidden"
     );
 
+
     filterToggleEl.setAttribute(
       "aria-expanded",
       "true"
     );
+
 
     filterToggleEl.textContent =
       "Filter schließen";
@@ -1219,10 +1873,12 @@ function toggleFilterPanel() {
       "filter-panel-hidden"
     );
 
+
     filterToggleEl.setAttribute(
       "aria-expanded",
       "false"
     );
+
 
     filterToggleEl.textContent =
       "Filter";
@@ -1232,17 +1888,28 @@ function toggleFilterPanel() {
 }
 
 
+// ============================================================
+// 16. FILTER ZURÜCKSETZEN
+// ============================================================
+
 function resetFilters() {
 
   searchEl.value = "";
 
   facultyFilterEl.value = "";
-  mintFilterEl.value = "";
+
+  areaFilterEl.value = "";
+
   formatFilterEl.value = "";
+
   gradeFilterEl.value = "";
+
   durationFilterEl.value = "";
+
   capacityFilterEl.value = "";
+
   locationFilterEl.value = "";
+
 
   renderOffers();
 
@@ -1250,10 +1917,138 @@ function resetFilters() {
 
 
 // ============================================================
-// 13. APPWRITE LADEN
+// 17. ANGEBOTE AUS APPWRITE LADEN
 // ============================================================
 
 async function loadOffers() {
+
+  const url =
+    `${APPWRITE_ENDPOINT}/tablesdb/`
+    +
+    `${encodeURIComponent(
+      DATABASE_ID
+    )}/tables/`
+    +
+    `${encodeURIComponent(
+      TABLE_ID
+    )}/rows`;
+
+
+  const response =
+    await fetch(
+      url,
+      {
+
+        method: "GET",
+
+        headers: {
+
+          "X-Appwrite-Project":
+            PROJECT_ID,
+
+          "X-Appwrite-Response-Format":
+            "1.9.5"
+
+        }
+
+      }
+    );
+
+
+  if (!response.ok) {
+
+    const errorText =
+      await response.text();
+
+
+    throw new Error(
+
+      `Angebote: Appwrite antwortet mit ${response.status}: ${errorText}`
+
+    );
+
+  }
+
+
+  const data =
+    await response.json();
+
+
+  allOffers =
+    data.rows || [];
+
+}
+
+
+// ============================================================
+// 18. MATERIALIEN AUS APPWRITE LADEN
+// ============================================================
+
+async function loadMaterials() {
+
+  const url =
+    `${APPWRITE_ENDPOINT}/tablesdb/`
+    +
+    `${encodeURIComponent(
+      DATABASE_ID
+    )}/tables/`
+    +
+    `${encodeURIComponent(
+      MATERIALS_TABLE_ID
+    )}/rows`;
+
+
+  const response =
+    await fetch(
+      url,
+      {
+
+        method: "GET",
+
+        headers: {
+
+          "X-Appwrite-Project":
+            PROJECT_ID,
+
+          "X-Appwrite-Response-Format":
+            "1.9.5"
+
+        }
+
+      }
+    );
+
+
+  if (!response.ok) {
+
+    const errorText =
+      await response.text();
+
+
+    throw new Error(
+
+      `Materialien: Appwrite antwortet mit ${response.status}: ${errorText}`
+
+    );
+
+  }
+
+
+  const data =
+    await response.json();
+
+
+  allMaterials =
+    data.rows || [];
+
+}
+
+
+// ============================================================
+// 19. ALLES LADEN
+// ============================================================
+
+async function loadData() {
 
   try {
 
@@ -1261,58 +2056,19 @@ async function loadOffers() {
       "error"
     );
 
+
     statusEl.style.display =
       "block";
+
 
     statusEl.textContent =
       "Angebote werden geladen …";
 
 
-    const url =
-      `${APPWRITE_ENDPOINT}/tablesdb/` +
-      `${encodeURIComponent(DATABASE_ID)}/tables/` +
-      `${encodeURIComponent(TABLE_ID)}/rows`;
-
-
-    const response =
-      await fetch(
-        url,
-        {
-
-          method: "GET",
-
-          headers: {
-
-            "X-Appwrite-Project":
-              PROJECT_ID,
-
-            "X-Appwrite-Response-Format":
-              "1.9.5"
-
-          }
-
-        }
-      );
-
-
-    if (!response.ok) {
-
-      const errorText =
-        await response.text();
-
-      throw new Error(
-        `Appwrite antwortet mit ${response.status}: ${errorText}`
-      );
-
-    }
-
-
-    const data =
-      await response.json();
-
-
-    allOffers =
-      data.rows || [];
+    await Promise.all([
+      loadOffers(),
+      loadMaterials()
+    ]);
 
 
     selectedOfferIds =
@@ -1320,12 +2076,15 @@ async function loadOffers() {
         id =>
           allOffers.some(
             row =>
-              getId(row) === id
+              getId(row)
+              ===
+              id
           )
       );
 
 
     saveSelection();
+
 
     renderFilterOptions();
 
@@ -1363,7 +2122,9 @@ async function loadOffers() {
 
 
     statusEl.innerHTML =
-      "<strong>Die Angebote konnten nicht geladen werden.</strong><br>" +
+
+      "<strong>Die Daten konnten nicht geladen werden.</strong><br>"
+      +
       escapeHtml(
         error.message
       );
@@ -1374,7 +2135,7 @@ async function loadOffers() {
 
 
 // ============================================================
-// 14. EVENTS
+// 20. EVENTS
 // ============================================================
 
 searchEl.addEventListener(
@@ -1388,30 +2149,36 @@ facultyFilterEl.addEventListener(
   renderOffers
 );
 
-mintFilterEl.addEventListener(
+
+areaFilterEl.addEventListener(
   "change",
   renderOffers
 );
+
 
 formatFilterEl.addEventListener(
   "change",
   renderOffers
 );
 
+
 gradeFilterEl.addEventListener(
   "change",
   renderOffers
 );
+
 
 durationFilterEl.addEventListener(
   "change",
   renderOffers
 );
 
+
 capacityFilterEl.addEventListener(
   "change",
   renderOffers
 );
+
 
 locationFilterEl.addEventListener(
   "change",
@@ -1479,7 +2246,9 @@ document.addEventListener(
   "keydown",
   event => {
 
-    if (event.key === "Escape") {
+    if (
+      event.key === "Escape"
+    ) {
 
       closeOfferDetails();
 
@@ -1492,11 +2261,11 @@ document.addEventListener(
 
 
 // ============================================================
-// 15. START
+// 21. START
 // ============================================================
 
 loadSavedSelection();
 
 updateRequestCount();
 
-loadOffers();
+loadData();
