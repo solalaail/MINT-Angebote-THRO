@@ -9,11 +9,11 @@
     content="width=device-width, initial-scale=1"
   >
 
-  <title>MINT-und weitere Schulangebote</title>
+  <title>MINT-Angebote</title>
 
   <meta
     name="description"
-    content="Schulworkshop-Angebote der Hochschule durchsuchen und anfragen"
+    content="MINT-Angebote der Hochschule durchsuchen und anfragen"
   >
 
   <link
@@ -38,11 +38,11 @@
         <div>
 
           <p class="eyebrow">
-            Schulworkshop-Bibliothek
+            MINT-Bibliothek
           </p>
 
           <h1>
-            MINT-und weitere Schulworkshop-Angebote entdecken
+            MINT-Angebote entdecken
           </h1>
 
         </div>
@@ -54,7 +54,11 @@
           type="button"
         >
           Meine Anfrage
-          <span id="requestCount" class="request-count">
+
+          <span
+            id="requestCount"
+            class="request-count"
+          >
             0
           </span>
         </button>
@@ -64,11 +68,14 @@
 
       <p class="intro">
         Finde passende Workshops, Laborführungen,
-        Veranstaltungen und weitere Angebote der Hochschule.
+        Kinderuni-Angebote und weitere Veranstaltungen
+        der Hochschule.
       </p>
 
 
-      <!-- Suche -->
+      <!-- ===================================================
+           SUCHE
+           =================================================== -->
 
       <div class="search-panel">
 
@@ -88,7 +95,9 @@
       </div>
 
 
-      <!-- Filter öffnen -->
+      <!-- ===================================================
+           FILTER BUTTON
+           =================================================== -->
 
       <button
         id="filterToggle"
@@ -101,7 +110,9 @@
       </button>
 
 
-      <!-- Filterbereich -->
+      <!-- ===================================================
+           FILTER
+           =================================================== -->
 
       <div
         id="filterPanel"
@@ -115,9 +126,11 @@
           </label>
 
           <select id="facultyFilter">
+
             <option value="">
               Alle Fakultäten
             </option>
+
           </select>
 
         </div>
@@ -125,14 +138,16 @@
 
         <div class="filter-group">
 
-          <label for="mintFilter">
-            MINT-Bereich
+          <label for="areaFilter">
+            Bereich
           </label>
 
-          <select id="mintFilter">
+          <select id="areaFilter">
+
             <option value="">
-              Alle MINT-Bereiche
+              Alle Bereiche
             </option>
+
           </select>
 
         </div>
@@ -145,9 +160,11 @@
           </label>
 
           <select id="formatFilter">
+
             <option value="">
               Alle Formate
             </option>
+
           </select>
 
         </div>
@@ -160,9 +177,11 @@
           </label>
 
           <select id="gradeFilter">
+
             <option value="">
               Alle Klassenstufen
             </option>
+
           </select>
 
         </div>
@@ -175,9 +194,11 @@
           </label>
 
           <select id="durationFilter">
+
             <option value="">
               Alle Dauern
             </option>
+
           </select>
 
         </div>
@@ -190,9 +211,11 @@
           </label>
 
           <select id="capacityFilter">
+
             <option value="">
               Alle Gruppengrößen
             </option>
+
           </select>
 
         </div>
@@ -205,9 +228,11 @@
           </label>
 
           <select id="locationFilter">
+
             <option value="">
               Alle Orte
             </option>
+
           </select>
 
         </div>
@@ -314,7 +339,7 @@
 
 
   <!-- =====================================================
-       ANFRAGELISTE
+       ANFRAGEFENSTER
        ===================================================== -->
 
   <div
@@ -350,14 +375,15 @@
         Sammelanfrage
       </p>
 
+
       <h2 id="requestTitle">
         Meine Anfrage
       </h2>
 
 
       <p class="request-intro">
-        Hier kannst du mehrere Angebote sammeln und später
-        gemeinsam anfragen.
+        Hier kannst du mehrere Angebote sammeln
+        und anschließend gemeinsam anfragen.
       </p>
 
 
@@ -378,6 +404,7 @@
         <form id="requestForm">
 
           <div class="form-grid">
+
 
             <div class="form-group">
 
@@ -486,8 +513,8 @@
 
 
           <p class="form-note">
-            Der echte E-Mail-Versand wird im nächsten Schritt
-            mit Appwrite verbunden.
+            Der echte E-Mail-Versand wird später
+            über Appwrite angebunden.
           </p>
 
         </form>
@@ -524,7 +551,5 @@
 </body>
 
 </html>
-
-</body>
 
 </html>
