@@ -19,9 +19,6 @@ const TABLE_ID = "angebote_informatik";
 
 // Bestehende Angebotstabelle
 
-const TABLE_ID =
-  "angebote_informatik";
-
 
 // Materialtabelle
 
