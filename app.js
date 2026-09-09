@@ -15,12 +15,23 @@ const DATABASE_ID = "6a902c4f0026523fc9c5";
 
 const TABLE_ID = "angebote_informatik";
 const MATERIALS_TABLE_ID = "materialien";
+const REQUESTS_TABLE_ID = "anfragen";
 
 const MATERIALS_BUCKET_ID = "6a9fde2300387d9f36fb";
 
+const LOAD_LIMIT = 150;
+
 
 // ============================================================
-// 2. HTML-ELEMENTE
+// 2. KAPAZITÄTS-GRENZEN
+// ============================================================
+
+const CAPACITY_GREEN_MAX = 2;
+const CAPACITY_YELLOW_MAX = 5;
+
+
+// ============================================================
+// 3. HTML-ELEMENTE
 // ============================================================
 
 const offersEl = document.getElementById("offers");
@@ -55,16 +66,18 @@ const requestSuccessEl = document.getElementById("requestSuccess");
 
 
 // ============================================================
-// 3. DATEN
+// 4. DATEN
 // ============================================================
 
 let allOffers = [];
 let allMaterials = [];
+let allRequests = [];
+
 let selectedOfferIds = [];
 
 
 // ============================================================
-// 4. HILFSFUNKTIONEN
+// 5. HILFSFUNKTIONEN
 // ============================================================
 
 function asText(value) {
@@ -90,8 +103,27 @@ function escapeHtml(value) {
 }
 
 
+function formatDateGerman(dateValue) {
+  if (!dateValue) {
+    return "";
+  }
+
+  const date = new Date(dateValue);
+
+  if (Number.isNaN(date.getTime())) {
+    return asText(dateValue);
+  }
+
+  return new Intl.DateTimeFormat("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  }).format(date);
+}
+
+
 // ============================================================
-// 5. ANGEBOTSFELDER
+// 6. ANGEBOTSFELDER
 // ============================================================
 
 function getId(row) {
@@ -154,8 +186,38 @@ function getContactMail(row) {
 }
 
 
+function getManualCapacityStatus(row) {
+  return asText(row.Kapazitaetsstatus).toLowerCase() || "automatisch";
+}
+
+
+function getPausedUntil(row) {
+  return row.Pausiert_bis || null;
+}
+
+
+function isOfferActive(row) {
+  // Alte Angebote ohne Wert sollen weiterhin aktiv sein.
+  if (row.Aktiv === undefined || row.Aktiv === null) {
+    return true;
+  }
+
+  if (typeof row.Aktiv === "boolean") {
+    return row.Aktiv;
+  }
+
+  const text = String(row.Aktiv).toLowerCase();
+
+  return !(
+    text === "false" ||
+    text === "0" ||
+    text === "nein"
+  );
+}
+
+
 // ============================================================
-// 6. FORMAT SCHÖN ANZEIGEN
+// 7. FORMAT SCHÖN ANZEIGEN
 // ============================================================
 
 function getFormatLabel(format) {
@@ -179,12 +241,13 @@ function getFormatLabel(format) {
 
 
 // ============================================================
-// 7. FAKULTÄTEN
+// 8. FAKULTÄTEN
 // ============================================================
 
 function getFacultyLabel(faculty) {
   const labels = {
-    Informatik: "Informatik",
+    Informatik:
+      "Informatik",
 
     Holztechnik_Bau_HTB:
       "HTB · Holztechnik & Bau",
@@ -233,7 +296,7 @@ function getFacultyClass(faculty) {
 
 
 // ============================================================
-// 8. MATERIALIEN
+// 9. MATERIALIEN
 // ============================================================
 
 function getMaterialOfferId(row) {
@@ -269,7 +332,278 @@ function getMaterialUrl(fileId) {
 
 
 // ============================================================
-// 9. FILTEROPTIONEN
+// 10. ANFRAGEN DER LETZTEN 30 TAGE
+// ============================================================
+
+function getRequestOfferId(row) {
+  return asText(row.Angebot_ID);
+}
+
+
+function getRequestDate(row) {
+  return row.Angefragt_am || null;
+}
+
+
+function isWithinLast30Days(dateValue) {
+  if (!dateValue) {
+    return false;
+  }
+
+  const requestDate = new Date(dateValue);
+
+  if (Number.isNaN(requestDate.getTime())) {
+    return false;
+  }
+
+  const now = new Date();
+
+  const thirtyDaysAgo = new Date(now);
+  thirtyDaysAgo.setDate(now.getDate() - 30);
+
+  return (
+    requestDate >= thirtyDaysAgo &&
+    requestDate <= now
+  );
+}
+
+
+function getRequestCountLast30Days(offerId) {
+  return allRequests.filter(request => {
+    return (
+      getRequestOfferId(request) === offerId &&
+      isWithinLast30Days(getRequestDate(request))
+    );
+  }).length;
+}
+
+
+// ============================================================
+// 11. KAPAZITÄTSLOGIK
+// ============================================================
+
+function isPausedUntilFuture(row) {
+  const pausedUntil = getPausedUntil(row);
+
+  if (!pausedUntil) {
+    return false;
+  }
+
+  const pausedDate = new Date(pausedUntil);
+
+  if (Number.isNaN(pausedDate.getTime())) {
+    return false;
+  }
+
+  return pausedDate > new Date();
+}
+
+
+function getAutomaticCapacityStatus(requestCount) {
+  if (requestCount <= CAPACITY_GREEN_MAX) {
+    return "gruen";
+  }
+
+  if (requestCount <= CAPACITY_YELLOW_MAX) {
+    return "gelb";
+  }
+
+  return "rot";
+}
+
+
+function getCapacityInfo(row) {
+  const requestCount =
+    getRequestCountLast30Days(getId(row));
+
+  // 1. Angebot explizit deaktiviert
+  if (!isOfferActive(row)) {
+    return {
+      status: "rot",
+      label: "Vorübergehend pausiert",
+      detail: "Dieses Angebot ist momentan nicht aktiv.",
+      requestCount,
+      source: "inactive"
+    };
+  }
+
+  // 2. Pause bis zu einem bestimmten Datum
+  if (isPausedUntilFuture(row)) {
+    const pausedUntil = getPausedUntil(row);
+
+    return {
+      status: "rot",
+      label: "Vorübergehend pausiert",
+      detail:
+        `Pausiert bis ${formatDateGerman(pausedUntil)}.`,
+      requestCount,
+      source: "paused"
+    };
+  }
+
+  // 3. Manuelle Übersteuerung
+  const manualStatus =
+    getManualCapacityStatus(row);
+
+  if (
+    manualStatus === "gruen" ||
+    manualStatus === "gelb" ||
+    manualStatus === "rot"
+  ) {
+    const labels = {
+      gruen: "Hat Kapazität",
+      gelb: "Begrenzte Kapazität",
+      rot: "Keine Kapazität"
+    };
+
+    return {
+      status: manualStatus,
+      label: labels[manualStatus],
+      detail: "Kapazität wurde manuell festgelegt.",
+      requestCount,
+      source: "manual"
+    };
+  }
+
+  // 4. Automatische Berechnung
+  const automaticStatus =
+    getAutomaticCapacityStatus(requestCount);
+
+  const labels = {
+    gruen: "Hat Kapazität",
+    gelb: "Begrenzte Kapazität",
+    rot: "Keine Kapazität"
+  };
+
+  return {
+    status: automaticStatus,
+    label: labels[automaticStatus],
+    detail:
+      `${requestCount} Anfrage${requestCount === 1 ? "" : "n"} ` +
+      "in den letzten 30 Tagen.",
+    requestCount,
+    source: "automatic"
+  };
+}
+
+
+// ============================================================
+// 12. KAPAZITÄTS-DESIGN
+// ============================================================
+
+function injectCapacityStyles() {
+  if (document.getElementById("capacityStyles")) {
+    return;
+  }
+
+  const style = document.createElement("style");
+
+  style.id = "capacityStyles";
+
+  style.textContent = `
+    .capacity-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .capacity-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      flex: 0 0 auto;
+    }
+
+    .capacity-gruen {
+      background: #e8f6ed;
+      color: #176b37;
+      border: 1px solid #b7dfc3;
+    }
+
+    .capacity-gruen .capacity-dot {
+      background: #2e9b52;
+    }
+
+    .capacity-gelb {
+      background: #fff7dd;
+      color: #7b5b00;
+      border: 1px solid #eed78b;
+    }
+
+    .capacity-gelb .capacity-dot {
+      background: #e0a900;
+    }
+
+    .capacity-rot {
+      background: #fdeaea;
+      color: #9b2424;
+      border: 1px solid #efb7b7;
+    }
+
+    .capacity-rot .capacity-dot {
+      background: #d64141;
+    }
+
+    .capacity-card-row {
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .capacity-detail-box {
+      margin-top: 18px;
+      padding: 16px;
+      border-radius: 14px;
+      background: #f7f8f9;
+    }
+
+    .capacity-detail-box h3 {
+      margin: 0 0 10px 0;
+    }
+
+    .capacity-detail-box p {
+      margin: 10px 0 0 0;
+    }
+
+    .capacity-request-count {
+      margin-top: 8px !important;
+      font-size: 0.92rem;
+      opacity: 0.78;
+    }
+  `;
+
+  document.head.appendChild(style);
+}
+
+
+// ============================================================
+// 13. KAPAZITÄTS-BADGE
+// ============================================================
+
+function getCapacityBadgeHtml(row) {
+  const info = getCapacityInfo(row);
+
+  return `
+    <span class="capacity-badge capacity-${escapeHtml(info.status)}">
+      <span class="capacity-dot"></span>
+      ${escapeHtml(info.label)}
+    </span>
+  `;
+}
+
+
+// ============================================================
+// 14. FILTEROPTIONEN
 // ============================================================
 
 function getUniqueValues(getter) {
@@ -362,21 +696,39 @@ function renderFilterOptions() {
 
 
 // ============================================================
-// 10. ANGEBOTE FILTERN UND ANZEIGEN
+// 15. ANGEBOTE FILTERN UND ANZEIGEN
 // ============================================================
 
 function renderOffers() {
-  const searchTerm = searchEl.value.trim().toLowerCase();
+  const searchTerm =
+    searchEl.value.trim().toLowerCase();
 
-  const selectedFaculty = facultyFilterEl.value;
-  const selectedArea = areaFilterEl.value;
-  const selectedFormat = formatFilterEl.value;
-  const selectedGrade = gradeFilterEl.value;
-  const selectedDuration = durationFilterEl.value;
-  const selectedCapacity = capacityFilterEl.value;
-  const selectedLocation = locationFilterEl.value;
+  const selectedFaculty =
+    facultyFilterEl.value;
+
+  const selectedArea =
+    areaFilterEl.value;
+
+  const selectedFormat =
+    formatFilterEl.value;
+
+  const selectedGrade =
+    gradeFilterEl.value;
+
+  const selectedDuration =
+    durationFilterEl.value;
+
+  const selectedCapacity =
+    capacityFilterEl.value;
+
+  const selectedLocation =
+    locationFilterEl.value;
+
 
   const filtered = allOffers.filter(row => {
+    const capacityInfo =
+      getCapacityInfo(row);
+
     const searchableText = [
       getTitle(row),
       getDescription(row),
@@ -388,27 +740,45 @@ function renderOffers() {
       getGrade(row),
       getCapacity(row),
       getLocation(row),
-      getDuration(row)
+      getDuration(row),
+      capacityInfo.label
     ]
       .join(" ")
       .toLowerCase();
 
     return (
-      (!searchTerm || searchableText.includes(searchTerm)) &&
-      (!selectedFaculty || getFaculty(row) === selectedFaculty) &&
-      (!selectedArea || getArea(row) === selectedArea) &&
-      (!selectedFormat || getFormat(row) === selectedFormat) &&
-      (!selectedGrade || getGrade(row) === selectedGrade) &&
-      (!selectedDuration || getDuration(row) === selectedDuration) &&
-      (!selectedCapacity || getCapacity(row) === selectedCapacity) &&
-      (!selectedLocation || getLocation(row) === selectedLocation)
+      (!searchTerm ||
+        searchableText.includes(searchTerm)) &&
+
+      (!selectedFaculty ||
+        getFaculty(row) === selectedFaculty) &&
+
+      (!selectedArea ||
+        getArea(row) === selectedArea) &&
+
+      (!selectedFormat ||
+        getFormat(row) === selectedFormat) &&
+
+      (!selectedGrade ||
+        getGrade(row) === selectedGrade) &&
+
+      (!selectedDuration ||
+        getDuration(row) === selectedDuration) &&
+
+      (!selectedCapacity ||
+        getCapacity(row) === selectedCapacity) &&
+
+      (!selectedLocation ||
+        getLocation(row) === selectedLocation)
     );
   });
+
 
   resultCountEl.textContent =
     filtered.length === 1
       ? "1 Angebot gefunden"
       : `${filtered.length} Angebote gefunden`;
+
 
   if (filtered.length === 0) {
     offersEl.innerHTML = `
@@ -420,15 +790,23 @@ function renderOffers() {
     return;
   }
 
+
   offersEl.innerHTML = filtered
     .map(row => {
       const id = getId(row);
-      const faculty = getFaculty(row);
-      const facultyClass = getFacultyClass(faculty);
 
-      const materials = getMaterialsForOffer(id);
+      const faculty =
+        getFaculty(row);
 
-      const isSelected = selectedOfferIds.includes(id);
+      const facultyClass =
+        getFacultyClass(faculty);
+
+      const materials =
+        getMaterialsForOffer(id);
+
+      const isSelected =
+        selectedOfferIds.includes(id);
+
 
       const metadata = [
         getArea(row)
@@ -455,6 +833,7 @@ function renderOffers() {
         .map(item => `<span>${item}</span>`)
         .join("");
 
+
       return `
         <article
           class="card ${facultyClass}"
@@ -478,6 +857,10 @@ function renderOffers() {
           <h3>
             ${escapeHtml(getTitle(row))}
           </h3>
+
+          <div class="capacity-card-row">
+            ${getCapacityBadgeHtml(row)}
+          </div>
 
           <p class="description">
             ${escapeHtml(
@@ -533,26 +916,37 @@ function renderOffers() {
     })
     .join("");
 
+
   document
     .querySelectorAll(".card")
     .forEach(card => {
       card.addEventListener("click", () => {
-        openOfferDetails(card.dataset.offerId);
+        openOfferDetails(
+          card.dataset.offerId
+        );
       });
 
-      card.addEventListener("keydown", event => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
+      card.addEventListener(
+        "keydown",
+        event => {
+          if (
+            event.key === "Enter" ||
+            event.key === " "
+          ) {
+            event.preventDefault();
 
-          openOfferDetails(card.dataset.offerId);
+            openOfferDetails(
+              card.dataset.offerId
+            );
+          }
         }
-      });
+      );
     });
 }
 
 
 // ============================================================
-// 11. DETAILFENSTER
+// 16. DETAILFENSTER
 // ============================================================
 
 function openOfferDetails(id) {
@@ -564,17 +958,31 @@ function openOfferDetails(id) {
     return;
   }
 
-  const faculty = getFaculty(row);
-  const facultyClass = getFacultyClass(faculty);
 
-  const contactPerson = getContactPerson(row);
-  const contactMail = getContactMail(row);
+  const faculty =
+    getFaculty(row);
 
-  const isSelected = selectedOfferIds.includes(id);
+  const facultyClass =
+    getFacultyClass(faculty);
 
-  const materials = getMaterialsForOffer(id);
+  const contactPerson =
+    getContactPerson(row);
+
+  const contactMail =
+    getContactMail(row);
+
+  const isSelected =
+    selectedOfferIds.includes(id);
+
+  const materials =
+    getMaterialsForOffer(id);
+
+  const capacityInfo =
+    getCapacityInfo(row);
+
 
   let materialsHtml = "";
+
 
   if (materials.length > 0) {
     materialsHtml = `
@@ -602,9 +1010,14 @@ function openOfferDetails(id) {
 
           ${materials
             .map(material => {
-              const title = getMaterialTitle(material);
-              const fileId = getMaterialFileId(material);
-              const url = getMaterialUrl(fileId);
+              const title =
+                getMaterialTitle(material);
+
+              const fileId =
+                getMaterialFileId(material);
+
+              const url =
+                getMaterialUrl(fileId);
 
               return `
                 <a
@@ -641,6 +1054,7 @@ function openOfferDetails(id) {
     `;
   }
 
+
   detailContentEl.innerHTML = `
     <div class="detail-card ${facultyClass}">
 
@@ -660,12 +1074,36 @@ function openOfferDetails(id) {
         ${escapeHtml(getTitle(row))}
       </h2>
 
+
+      <div class="capacity-detail-box">
+
+        <h3>
+          Kapazität
+        </h3>
+
+        ${getCapacityBadgeHtml(row)}
+
+        <p>
+          ${escapeHtml(capacityInfo.detail)}
+        </p>
+
+        <p class="capacity-request-count">
+          Anfragen in den letzten 30 Tagen:
+          <strong>
+            ${capacityInfo.requestCount}
+          </strong>
+        </p>
+
+      </div>
+
+
       <p class="detail-description">
         ${escapeHtml(
           getDescription(row) ||
           "Weitere Informationen folgen."
         )}
       </p>
+
 
       <div class="detail-meta">
 
@@ -674,7 +1112,9 @@ function openOfferDetails(id) {
             ? `
               <div>
                 <strong>Bereich</strong>
-                <span>${escapeHtml(getArea(row))}</span>
+                <span>
+                  ${escapeHtml(getArea(row))}
+                </span>
               </div>
             `
             : ""
@@ -685,7 +1125,9 @@ function openOfferDetails(id) {
             ? `
               <div>
                 <strong>Klassenstufe</strong>
-                <span>${escapeHtml(getGrade(row))}</span>
+                <span>
+                  ${escapeHtml(getGrade(row))}
+                </span>
               </div>
             `
             : ""
@@ -696,7 +1138,9 @@ function openOfferDetails(id) {
             ? `
               <div>
                 <strong>Personenanzahl</strong>
-                <span>${escapeHtml(getCapacity(row))}</span>
+                <span>
+                  ${escapeHtml(getCapacity(row))}
+                </span>
               </div>
             `
             : ""
@@ -707,7 +1151,9 @@ function openOfferDetails(id) {
             ? `
               <div>
                 <strong>Dauer</strong>
-                <span>${escapeHtml(getDuration(row))}</span>
+                <span>
+                  ${escapeHtml(getDuration(row))}
+                </span>
               </div>
             `
             : ""
@@ -718,7 +1164,9 @@ function openOfferDetails(id) {
             ? `
               <div>
                 <strong>Ort</strong>
-                <span>${escapeHtml(getLocation(row))}</span>
+                <span>
+                  ${escapeHtml(getLocation(row))}
+                </span>
               </div>
             `
             : ""
@@ -726,12 +1174,16 @@ function openOfferDetails(id) {
 
       </div>
 
+
       ${materialsHtml}
+
 
       <div class="contact-box">
 
         <p>
-          Für dieses ${escapeHtml(getFormatLabel(getFormat(row)))} ist
+          Für dieses
+          ${escapeHtml(getFormatLabel(getFormat(row)))}
+          ist
           <strong>
             ${escapeHtml(
               contactPerson ||
@@ -756,6 +1208,7 @@ function openOfferDetails(id) {
 
       </div>
 
+
       <button
         id="detailAddButton"
         class="${
@@ -775,48 +1228,68 @@ function openOfferDetails(id) {
     </div>
   `;
 
+
   const addButton =
-    document.getElementById("detailAddButton");
+    document.getElementById(
+      "detailAddButton"
+    );
 
-  addButton.addEventListener("click", () => {
-    toggleOfferSelection(id);
-    openOfferDetails(id);
-  });
 
-  detailModalEl.classList.remove("modal-hidden");
+  addButton.addEventListener(
+    "click",
+    () => {
+      toggleOfferSelection(id);
+
+      openOfferDetails(id);
+    }
+  );
+
+
+  detailModalEl.classList.remove(
+    "modal-hidden"
+  );
 
   detailModalEl.setAttribute(
     "aria-hidden",
     "false"
   );
 
-  document.body.classList.add("modal-open");
+  document.body.classList.add(
+    "modal-open"
+  );
 }
 
 
 function closeOfferDetails() {
-  detailModalEl.classList.add("modal-hidden");
+  detailModalEl.classList.add(
+    "modal-hidden"
+  );
 
   detailModalEl.setAttribute(
     "aria-hidden",
     "true"
   );
 
-  document.body.classList.remove("modal-open");
+  document.body.classList.remove(
+    "modal-open"
+  );
 }
 
 
 // ============================================================
-// 12. MERKLISTE
+// 17. MERKLISTE
 // ============================================================
 
 function loadSavedSelection() {
   try {
     const saved =
-      localStorage.getItem("mintRequestList");
+      localStorage.getItem(
+        "mintRequestList"
+      );
 
     if (saved) {
-      const parsed = JSON.parse(saved);
+      const parsed =
+        JSON.parse(saved);
 
       if (Array.isArray(parsed)) {
         selectedOfferIds = parsed;
@@ -852,7 +1325,8 @@ function toggleOfferSelection(id) {
   if (selectedOfferIds.includes(id)) {
     selectedOfferIds =
       selectedOfferIds.filter(
-        selectedId => selectedId !== id
+        selectedId =>
+          selectedId !== id
       );
   } else {
     selectedOfferIds.push(id);
@@ -868,7 +1342,8 @@ function toggleOfferSelection(id) {
 function removeOfferFromRequest(id) {
   selectedOfferIds =
     selectedOfferIds.filter(
-      selectedId => selectedId !== id
+      selectedId =>
+        selectedId !== id
     );
 
   saveSelection();
@@ -886,45 +1361,59 @@ function updateRequestCount() {
 
 function getSelectedOffers() {
   return allOffers.filter(
-    row => selectedOfferIds.includes(getId(row))
+    row =>
+      selectedOfferIds.includes(
+        getId(row)
+      )
   );
 }
 
 
 // ============================================================
-// 13. ANFRAGEFENSTER
+// 18. ANFRAGEFENSTER
 // ============================================================
 
 function openRequestModal() {
-  requestSuccessEl.classList.add("hidden");
+  requestSuccessEl.classList.add(
+    "hidden"
+  );
 
   renderRequestList();
 
-  requestModalEl.classList.remove("modal-hidden");
+  requestModalEl.classList.remove(
+    "modal-hidden"
+  );
 
   requestModalEl.setAttribute(
     "aria-hidden",
     "false"
   );
 
-  document.body.classList.add("modal-open");
+  document.body.classList.add(
+    "modal-open"
+  );
 }
 
 
 function closeRequestModal() {
-  requestModalEl.classList.add("modal-hidden");
+  requestModalEl.classList.add(
+    "modal-hidden"
+  );
 
   requestModalEl.setAttribute(
     "aria-hidden",
     "true"
   );
 
-  document.body.classList.remove("modal-open");
+  document.body.classList.remove(
+    "modal-open"
+  );
 }
 
 
 function renderRequestList() {
-  const selected = getSelectedOffers();
+  const selected =
+    getSelectedOffers();
 
   if (selected.length === 0) {
     requestItemsEl.innerHTML = `
@@ -942,75 +1431,98 @@ function renderRequestList() {
       </div>
     `;
 
-    requestFormAreaEl.classList.add("hidden");
+    requestFormAreaEl.classList.add(
+      "hidden"
+    );
 
     return;
   }
 
-  requestFormAreaEl.classList.remove("hidden");
 
-  requestItemsEl.innerHTML = selected
-    .map(row => {
-      return `
-        <div class="request-item">
+  requestFormAreaEl.classList.remove(
+    "hidden"
+  );
 
-          <div>
 
-            <span class="request-item-format">
-              ${escapeHtml(getFormatLabel(getFormat(row)))}
-            </span>
+  requestItemsEl.innerHTML =
+    selected
+      .map(row => {
+        return `
+          <div class="request-item">
 
-            <h3>
-              ${escapeHtml(getTitle(row))}
-            </h3>
+            <div>
 
-            <p>
-              ${escapeHtml(
-                getFacultyLabel(getFaculty(row))
-              )}
-            </p>
+              <span class="request-item-format">
+                ${escapeHtml(getFormatLabel(getFormat(row)))}
+              </span>
+
+              <h3>
+                ${escapeHtml(getTitle(row))}
+              </h3>
+
+              <p>
+                ${escapeHtml(
+                  getFacultyLabel(
+                    getFaculty(row)
+                  )
+                )}
+              </p>
+
+              <div class="capacity-card-row">
+                ${getCapacityBadgeHtml(row)}
+              </div>
+
+            </div>
+
+            <button
+              class="remove-request-item"
+              type="button"
+              data-remove-id="${escapeHtml(getId(row))}"
+            >
+              Entfernen
+            </button>
 
           </div>
+        `;
+      })
+      .join("");
 
-          <button
-            class="remove-request-item"
-            type="button"
-            data-remove-id="${escapeHtml(getId(row))}"
-          >
-            Entfernen
-          </button>
-
-        </div>
-      `;
-    })
-    .join("");
 
   document
-    .querySelectorAll("[data-remove-id]")
+    .querySelectorAll(
+      "[data-remove-id]"
+    )
     .forEach(button => {
-      button.addEventListener("click", () => {
-        removeOfferFromRequest(
-          button.dataset.removeId
-        );
-      });
+      button.addEventListener(
+        "click",
+        () => {
+          removeOfferFromRequest(
+            button.dataset.removeId
+          );
+        }
+      );
     });
 }
 
 
 // ============================================================
-// 14. ANFRAGE VORBEREITEN
+// 19. ANFRAGE VORBEREITEN
 // ============================================================
 
 function handleRequestSubmit(event) {
   event.preventDefault();
 
-  const selected = getSelectedOffers();
+  const selected =
+    getSelectedOffers();
 
   if (selected.length === 0) {
     return;
   }
 
-  const formData = new FormData(requestFormEl);
+
+  const formData =
+    new FormData(requestFormEl);
+
 
   const name =
     asText(formData.get("name"));
@@ -1030,6 +1542,7 @@ function handleRequestSubmit(event) {
   const message =
     asText(formData.get("message"));
 
+
   const contacts = [
     ...new Set(
       selected
@@ -1037,6 +1550,7 @@ function handleRequestSubmit(event) {
         .filter(Boolean)
     )
   ];
+
 
   const offerSummary = selected
     .map(row => {
@@ -1047,18 +1561,26 @@ function handleRequestSubmit(event) {
     })
     .join("\n");
 
-  console.log("Vorbereitete Anfrage:", {
-    name,
-    email,
-    school,
-    groupSize,
-    date,
-    message,
-    contacts,
-    offers: offerSummary
-  });
 
-  requestSuccessEl.classList.remove("hidden");
+  console.log(
+    "Vorbereitete Anfrage:",
+    {
+      name,
+      email,
+      school,
+      groupSize,
+      date,
+      message,
+      contacts,
+      offers: offerSummary
+    }
+  );
+
+
+  requestSuccessEl.classList.remove(
+    "hidden"
+  );
+
 
   requestSuccessEl.innerHTML = `
     <strong>
@@ -1077,16 +1599,16 @@ function handleRequestSubmit(event) {
     </p>
 
     <p>
-      Der automatische E-Mail-Versand wird
-      anschließend serverseitig über Appwrite
-      eingerichtet.
+      Der automatische E-Mail-Versand und das
+      Speichern der echten Anfrage werden als
+      nächster Schritt eingerichtet.
     </p>
   `;
 }
 
 
 // ============================================================
-// 15. FILTER EIN- UND AUSKLAPPEN
+// 20. FILTER EIN-/AUSKLAPPEN
 // ============================================================
 
 function toggleFilterPanel() {
@@ -1124,7 +1646,7 @@ function toggleFilterPanel() {
 
 
 // ============================================================
-// 16. FILTER ZURÜCKSETZEN
+// 21. FILTER ZURÜCKSETZEN
 // ============================================================
 
 function resetFilters() {
@@ -1143,127 +1665,160 @@ function resetFilters() {
 
 
 // ============================================================
-// 17. APPWRITE: ANGEBOTE LADEN
+// 22. APPWRITE-HILFSFUNKTION
+// ============================================================
+
+function buildListUrl(tableId) {
+  const queries = [
+    JSON.stringify({
+      method: "limit",
+      values: [LOAD_LIMIT]
+    })
+  ];
+
+  const queryString =
+    queries
+      .map(
+        query =>
+          `queries[]=${encodeURIComponent(query)}`
+      )
+      .join("&");
+
+  return (
+    `${APPWRITE_ENDPOINT}/tablesdb/` +
+    `${encodeURIComponent(DATABASE_ID)}/tables/` +
+    `${encodeURIComponent(tableId)}/rows` +
+    `?${queryString}`
+  );
+}
+
+
+async function fetchRows(tableId) {
+  const response = await fetch(
+    buildListUrl(tableId),
+    {
+      method: "GET",
+
+      headers: {
+        "X-Appwrite-Project":
+          PROJECT_ID,
+
+        "X-Appwrite-Response-Format":
+          "1.9.5"
+      }
+    }
+  );
+
+
+  if (!response.ok) {
+    const errorText =
+      await response.text();
+
+    throw new Error(
+      `${tableId}: Appwrite antwortet mit ` +
+      `${response.status}: ${errorText}`
+    );
+  }
+
+
+  const data =
+    await response.json();
+
+  return data.rows || [];
+}
+
+
+// ============================================================
+// 23. ANGEBOTE LADEN
 // ============================================================
 
 async function loadOffers() {
-  const queries = [
-    JSON.stringify({
-      method: "limit",
-      values: [150]
-    })
-  ];
-
-  const queryString = queries
-    .map(query => `queries[]=${encodeURIComponent(query)}`)
-    .join("&");
-
-  const url =
-    `${APPWRITE_ENDPOINT}/tablesdb/` +
-    `${encodeURIComponent(DATABASE_ID)}/tables/` +
-    `${encodeURIComponent(TABLE_ID)}/rows` +
-    `?${queryString}`;
-
-  const response = await fetch(url, {
-    method: "GET",
-
-    headers: {
-      "X-Appwrite-Project": PROJECT_ID,
-      "X-Appwrite-Response-Format": "1.9.5"
-    }
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-
-    throw new Error(
-      `Angebote: Appwrite antwortet mit ${response.status}: ${errorText}`
-    );
-  }
-
-  const data = await response.json();
-
-  allOffers = data.rows || [];
+  allOffers =
+    await fetchRows(TABLE_ID);
 }
 
 
 // ============================================================
-// 18. APPWRITE: MATERIALIEN LADEN
+// 24. MATERIALIEN LADEN
 // ============================================================
 
 async function loadMaterials() {
-  const queries = [
-    JSON.stringify({
-      method: "limit",
-      values: [150]
-    })
-  ];
-
-  const queryString = queries
-    .map(query => `queries[]=${encodeURIComponent(query)}`)
-    .join("&");
-
-  const url =
-    `${APPWRITE_ENDPOINT}/tablesdb/` +
-    `${encodeURIComponent(DATABASE_ID)}/tables/` +
-    `${encodeURIComponent(MATERIALS_TABLE_ID)}/rows` +
-    `?${queryString}`;
-
-  const response = await fetch(url, {
-    method: "GET",
-
-    headers: {
-      "X-Appwrite-Project": PROJECT_ID,
-      "X-Appwrite-Response-Format": "1.9.5"
-    }
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-
-    throw new Error(
-      `Materialien: Appwrite antwortet mit ${response.status}: ${errorText}`
+  allMaterials =
+    await fetchRows(
+      MATERIALS_TABLE_ID
     );
-  }
-
-  const data = await response.json();
-
-  allMaterials = data.rows || [];
 }
 
 
 // ============================================================
-// 19. ALLES LADEN
+// 25. ANFRAGEN LADEN
+// ============================================================
+
+async function loadRequests() {
+  allRequests =
+    await fetchRows(
+      REQUESTS_TABLE_ID
+    );
+}
+
+
+// ============================================================
+// 26. ALLES LADEN
 // ============================================================
 
 async function loadData() {
   try {
-    statusEl.classList.remove("error");
+    statusEl.classList.remove(
+      "error"
+    );
 
-    statusEl.style.display = "block";
+    statusEl.style.display =
+      "block";
 
     statusEl.textContent =
       "Angebote werden geladen …";
 
+
+    // Angebote müssen funktionieren.
     await loadOffers();
 
+
+    // Materialien sind optional.
     try {
       await loadMaterials();
     } catch (materialError) {
       console.warn(
-        "Materialien konnten noch nicht geladen werden:",
+        "Materialien konnten nicht geladen werden:",
         materialError
       );
 
       allMaterials = [];
     }
 
-    selectedOfferIds =
-      selectedOfferIds.filter(id =>
-        allOffers.some(
-          row => getId(row) === id
-        )
+
+    // Anfragen sind für die automatische
+    // Kapazität optional.
+    try {
+      await loadRequests();
+    } catch (requestError) {
+      console.warn(
+        "Anfragen konnten nicht geladen werden:",
+        requestError
       );
+
+      allRequests = [];
+    }
+
+
+    selectedOfferIds =
+      selectedOfferIds.filter(
+        id =>
+          allOffers.some(
+            row =>
+              getId(row) === id
+          )
+      );
+
 
     saveSelection();
 
@@ -1272,7 +1827,8 @@ async function loadData() {
     renderOffers();
     renderRequestList();
 
-    statusEl.style.display = "none";
+    statusEl.style.display =
+      "none";
   } catch (error) {
     console.error(
       "Fehler beim Laden:",
@@ -1282,9 +1838,12 @@ async function loadData() {
     resultCountEl.textContent =
       "Fehler beim Laden";
 
-    statusEl.style.display = "block";
+    statusEl.style.display =
+      "block";
 
-    statusEl.classList.add("error");
+    statusEl.classList.add(
+      "error"
+    );
 
     statusEl.innerHTML =
       "<strong>Die Angebote konnten nicht geladen werden.</strong><br>" +
@@ -1294,7 +1853,7 @@ async function loadData() {
 
 
 // ============================================================
-// 20. EVENTS
+// 27. EVENTS
 // ============================================================
 
 searchEl.addEventListener(
@@ -1407,8 +1966,10 @@ document.addEventListener(
 
 
 // ============================================================
-// 21. START
+// 28. START
 // ============================================================
+
+injectCapacityStyles();
 
 loadSavedSelection();
 
