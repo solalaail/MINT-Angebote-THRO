@@ -1,11 +1,12 @@
 const DATABASE_ID = "6a902c4f0026523fc9c5";
+const OFFERS_TABLE_ID = "angebote_informatik";
 const REQUESTS_TABLE_ID = "anfragen";
 
 const MAX_OFFERS_PER_REQUEST = 20;
 
 export default async ({ req, res, log, error }) => {
   try {
-    // Nur POST-Anfragen akzeptieren
+    // Nur POST erlauben
     if (req.method !== "POST") {
       return res.json(
         {
@@ -16,7 +17,7 @@ export default async ({ req, res, log, error }) => {
       );
     }
 
-    // JSON-Body einlesen
+    // JSON-Body lesen
     let body;
 
     try {
@@ -33,7 +34,7 @@ export default async ({ req, res, log, error }) => {
 
     const offerIds = body?.offerIds;
 
-    // Prüfen, ob überhaupt Angebots-IDs geschickt wurden
+    // Grundprüfung
     if (!Array.isArray(offerIds)) {
       return res.json(
         {
@@ -44,8 +45,8 @@ export default async ({ req, res, log, error }) => {
       );
     }
 
-    // Nur Strings übernehmen, Leerzeichen entfernen,
-    // leere Werte entfernen und doppelte IDs löschen
+    // Nur gültige Strings übernehmen,
+    // Leerzeichen und Duplikate entfernen
     const uniqueOfferIds = [
       ...new Set(
         offerIds
@@ -69,12 +70,14 @@ export default async ({ req, res, log, error }) => {
       return res.json(
         {
           success: false,
-          message: `Maximal ${MAX_OFFERS_PER_REQUEST} Angebote pro Anfrage sind erlaubt.`
+          message:
+            `Maximal ${MAX_OFFERS_PER_REQUEST} Angebote pro Anfrage sind erlaubt.`
         },
         400
       );
     }
 
+    // Appwrite-Verbindung
     const apiEndpoint =
       process.env.APPWRITE_FUNCTION_API_ENDPOINT ||
       "https://fra.cloud.appwrite.io/v1";
@@ -93,21 +96,99 @@ export default async ({ req, res, log, error }) => {
       throw new Error("Dynamischer Appwrite API-Key fehlt.");
     }
 
+    const headers = {
+      "Content-Type": "application/json",
+      "X-Appwrite-Project": projectId,
+      "X-Appwrite-Key": apiKey,
+      "X-Appwrite-Response-Format": "1.9.5"
+    };
+
+    // --------------------------------------------------
+    // SCHRITT 1:
+    // Prüfen, ob ALLE Angebots-IDs wirklich existieren.
+    // --------------------------------------------------
+
+    const validOfferIds = [];
+
+    for (const offerId of uniqueOfferIds) {
+      const checkResponse = await fetch(
+        `${apiEndpoint}/tablesdb/${DATABASE_ID}/tables/${OFFERS_TABLE_ID}/rows/${encodeURIComponent(offerId)}`,
+        {
+          method: "GET",
+          headers
+        }
+      );
+
+      if (checkResponse.status === 404) {
+        return res.json(
+          {
+            success: false,
+            message:
+              "Mindestens eines der ausgewählten Angebote existiert nicht mehr."
+          },
+          400
+        );
+      }
+
+      if (!checkResponse.ok) {
+        const checkResult = await checkResponse.text();
+
+        throw new Error(
+          `Angebot konnte nicht geprüft werden: ${checkResult}`
+        );
+      }
+
+      const offer = await checkResponse.json();
+
+      // Falls ein Angebot ausdrücklich deaktiviert wurde,
+      // darf es nicht neu angefragt werden.
+      if (offer.Aktiv === false) {
+        return res.json(
+          {
+            success: false,
+            message:
+              `Das Angebot "${offer.Titel_des_Angebots || offerId}" ist derzeit pausiert.`
+          },
+          400
+        );
+      }
+
+      // Auch Pausiert_bis berücksichtigen
+      if (offer.Pausiert_bis) {
+        const pausedUntil = new Date(offer.Pausiert_bis);
+
+        if (
+          !Number.isNaN(pausedUntil.getTime()) &&
+          pausedUntil.getTime() > Date.now()
+        ) {
+          return res.json(
+            {
+              success: false,
+              message:
+                `Das Angebot "${offer.Titel_des_Angebots || offerId}" ist derzeit pausiert.`
+            },
+            400
+          );
+        }
+      }
+
+      validOfferIds.push(offerId);
+    }
+
+    // --------------------------------------------------
+    // SCHRITT 2:
+    // Erst NACH erfolgreicher Prüfung speichern.
+    // --------------------------------------------------
+
     const requestedAt = new Date().toISOString();
     const createdRows = [];
 
-    // Für jedes ausgewählte Angebot genau eine Statistik-Zeile erzeugen
-    for (const offerId of uniqueOfferIds) {
-      const response = await fetch(
+    for (const offerId of validOfferIds) {
+      const createResponse = await fetch(
         `${apiEndpoint}/tablesdb/${DATABASE_ID}/tables/${REQUESTS_TABLE_ID}/rows`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Appwrite-Project": projectId,
-            "X-Appwrite-Key": apiKey,
-            "X-Appwrite-Response-Format": "1.9.5"
-          },
+          headers,
           body: JSON.stringify({
             rowId: "unique()",
             data: {
@@ -118,9 +199,9 @@ export default async ({ req, res, log, error }) => {
         }
       );
 
-      const result = await response.json();
+      const result = await createResponse.json();
 
-      if (!response.ok) {
+      if (!createResponse.ok) {
         throw new Error(
           `Anfrage konnte nicht gespeichert werden: ${JSON.stringify(result)}`
         );
@@ -130,7 +211,7 @@ export default async ({ req, res, log, error }) => {
     }
 
     log(
-      `${createdRows.length} Anfrage-Einträge erfolgreich gespeichert.`
+      `${createdRows.length} gültige Anfrage-Einträge gespeichert.`
     );
 
     return res.json({
@@ -138,6 +219,7 @@ export default async ({ req, res, log, error }) => {
       message: "Anfrage erfolgreich erfasst.",
       savedOffers: createdRows.length
     });
+
   } catch (err) {
     error(err?.message || String(err));
 
