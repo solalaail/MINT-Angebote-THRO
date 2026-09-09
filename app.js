@@ -114,7 +114,6 @@ function getFaculty(row) {
 }
 
 
-// Die Appwrite-Spalte heißt jetzt "Bereich"
 function getArea(row) {
   return asText(row.Bereich);
 }
@@ -185,8 +184,7 @@ function getFormatLabel(format) {
 
 function getFacultyLabel(faculty) {
   const labels = {
-    Informatik:
-      "Informatik",
+    Informatik: "Informatik",
 
     Holztechnik_Bau_HTB:
       "HTB · Holztechnik & Bau",
@@ -1149,10 +1147,22 @@ function resetFilters() {
 // ============================================================
 
 async function loadOffers() {
+  const queries = [
+    JSON.stringify({
+      method: "limit",
+      values: [150]
+    })
+  ];
+
+  const queryString = queries
+    .map(query => `queries[]=${encodeURIComponent(query)}`)
+    .join("&");
+
   const url =
     `${APPWRITE_ENDPOINT}/tablesdb/` +
     `${encodeURIComponent(DATABASE_ID)}/tables/` +
-    `${encodeURIComponent(TABLE_ID)}/rows`;
+    `${encodeURIComponent(TABLE_ID)}/rows` +
+    `?${queryString}`;
 
   const response = await fetch(url, {
     method: "GET",
@@ -1182,10 +1192,22 @@ async function loadOffers() {
 // ============================================================
 
 async function loadMaterials() {
+  const queries = [
+    JSON.stringify({
+      method: "limit",
+      values: [150]
+    })
+  ];
+
+  const queryString = queries
+    .map(query => `queries[]=${encodeURIComponent(query)}`)
+    .join("&");
+
   const url =
     `${APPWRITE_ENDPOINT}/tablesdb/` +
     `${encodeURIComponent(DATABASE_ID)}/tables/` +
-    `${encodeURIComponent(MATERIALS_TABLE_ID)}/rows`;
+    `${encodeURIComponent(MATERIALS_TABLE_ID)}/rows` +
+    `?${queryString}`;
 
   const response = await fetch(url, {
     method: "GET",
@@ -1223,12 +1245,8 @@ async function loadData() {
     statusEl.textContent =
       "Angebote werden geladen …";
 
-    // Angebote müssen funktionieren.
     await loadOffers();
 
-    // Materialien sind optional:
-    // Falls dort noch Berechtigungen fehlen,
-    // soll die Hauptseite trotzdem funktionieren.
     try {
       await loadMaterials();
     } catch (materialError) {
