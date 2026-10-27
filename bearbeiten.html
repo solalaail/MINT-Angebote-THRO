@@ -1,0 +1,486 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Angebotsverwaltung | MINT-Bibliothek TH Rosenheim</title>
+  <style>
+    :root {
+      --blue: #164b82;
+      --blue-light: #edf4fa;
+      --bg: #f5f7fa;
+      --text: #202d3a;
+      --muted: #69798a;
+      --border: #e2e8ee;
+      --white: #fff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    header {
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      padding: 22px 24px;
+    }
+
+    .header-inner, main {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .eyebrow {
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 6px 0 4px;
+      font-size: 27px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    p { margin: 5px 0; }
+
+    .muted {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    main { padding: 28px 24px 60px; }
+
+    .intro {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 22px;
+      flex-wrap: wrap;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .stat, .panel {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+
+    .stat { padding: 22px; }
+
+    .stat-number {
+      font-size: 32px;
+      font-weight: 700;
+      margin-top: 5px;
+    }
+
+    .panel {
+      padding: 24px;
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+
+    input {
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      font: inherit;
+      width: 100%;
+      max-width: 370px;
+    }
+
+    input:focus {
+      outline: 2px solid #a9c9e6;
+      border-color: var(--blue);
+    }
+
+    button, .back-link {
+      display: inline-block;
+      border: 0;
+      border-radius: 9px;
+      padding: 11px 16px;
+      font: inherit;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    button {
+      background: var(--blue);
+      color: white;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      background: #e9eef3;
+      color: #82909e;
+      cursor: not-allowed;
+    }
+
+    .back-link {
+      background: var(--blue-light);
+      color: var(--blue);
+    }
+
+    .offer-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .offer {
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      padding: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .offer h3 {
+      font-size: 16px;
+      margin: 0 0 5px;
+    }
+
+    .offer-info {
+      min-width: 0;
+    }
+
+    .offer-meta {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .offer-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .badge {
+      display: inline-block;
+      border-radius: 100px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .active {
+      background: #e7f5eb;
+      color: #247543;
+    }
+
+    .paused {
+      background: #fff0e7;
+      color: #a95420;
+    }
+
+    .notice {
+      background: var(--blue-light);
+      color: var(--blue);
+      padding: 14px 17px;
+      border-radius: 10px;
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+
+    .empty {
+      padding: 30px 10px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    @media (max-width: 700px) {
+      .stats { grid-template-columns: 1fr; }
+      .offer { align-items: flex-start; flex-direction: column; }
+      .offer-actions { width: 100%; justify-content: space-between; }
+      .panel { padding: 17px; }
+      main { padding: 20px 14px; }
+      h1 { font-size: 23px; }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="eyebrow">TH Rosenheim · MINT-Bibliothek</div>
+      <h1>Angebotsverwaltung</h1>
+      <p class="muted">Angebote übersichtlich verwalten</p>
+    </div>
+  </header>
+
+  <main>
+    <div class="intro">
+      <div>
+        <h2>Dashboard</h2>
+        <p class="muted">Übersicht über die bestehenden MINT-Angebote</p>
+      </div>
+      <a class="back-link" href="index.html">← Zur Angebotsbibliothek</a>
+    </div>
+
+    <div class="notice">
+      <strong>Vorschau-Modus:</strong>
+      Angebote werden nur angezeigt. Erstellen und Bearbeiten
+      aktivieren wir später mit einer sicheren Passwortprüfung.
+    </div>
+
+    <section class="stats" aria-label="Statistik">
+      <div class="stat">
+        <div class="muted">Angebote insgesamt</div>
+        <div class="stat-number" id="totalCount">–</div>
+      </div>
+
+      <div class="stat">
+        <div class="muted">Aktive Angebote</div>
+        <div class="stat-number" id="activeCount">–</div>
+      </div>
+
+      <div class="stat">
+        <div class="muted">Pausierte Angebote</div>
+        <div class="stat-number" id="pausedCount">–</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Alle Angebote</h2>
+      <p class="muted">Suche nach Titel, Fakultät oder Bereich.</p>
+
+      <div class="toolbar">
+        <input
+          id="searchInput"
+          type="search"
+          placeholder="Angebot suchen …"
+          aria-label="Angebot suchen"
+        >
+        <button type="button" disabled>+ Neues Angebot</button>
+      </div>
+
+      <div id="offerList" class="offer-list">
+        <div class="empty">Angebote werden geladen …</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Verbindung zur bestehenden Appwrite-Datenbank
+    const APPWRITE_ENDPOINT = "https://cloud.appwrite.io/v1";
+    const PROJECT_ID = "6a902517000542f46530";
+    const DATABASE_ID = "6a902c4f0026523fc9c5";
+    const TABLE_ID = "angebote_informatik";
+
+    const offerList = document.getElementById("offerList");
+    const searchInput = document.getElementById("searchInput");
+
+    let allOffers = [];
+
+    const facultyLabels = {
+      Informatik: "Informatik",
+      Holztechnik_Bau_HTB: "HTB · Holztechnik & Bau",
+      Angewandte_Natur_und_Geisteswissenschaften_ANG:
+        "ANG · Angewandte Natur- & Geisteswissenschaften",
+      Betriebswirtschaft: "Betriebswirtschaft",
+      Campus_Chiemgau: "Campus Chiemgau",
+      Gesundheitswissenschaften_GSW:
+        "GSW · Gesundheitswissenschaften",
+      Ingenieurswissenschaften: "Ingenieurwissenschaften",
+      Wirtschaftsingenieurwesen_WI:
+        "WI · Wirtschaftsingenieurwesen",
+      Andere: "Andere"
+    };
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function isPaused(offer) {
+      if (offer.Aktiv === false) return true;
+
+      if (offer.Pausiert_bis) {
+        const date = new Date(offer.Pausiert_bis);
+        if (!Number.isNaN(date.getTime()) && date > new Date()) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    function updateStats() {
+      const paused = allOffers.filter(isPaused).length;
+
+      document.getElementById("totalCount").textContent =
+        allOffers.length;
+
+      document.getElementById("activeCount").textContent =
+        allOffers.length - paused;
+
+      document.getElementById("pausedCount").textContent =
+        paused;
+    }
+
+    function renderOffers() {
+      const term = searchInput.value.trim().toLowerCase();
+
+      const filtered = allOffers.filter(offer => {
+        const searchable = [
+          offer.Titel_des_Angebots,
+          offer.Fakultaet,
+          facultyLabels[offer.Fakultaet],
+          offer.Bereich,
+          offer.Format
+        ].join(" ").toLowerCase();
+
+        return searchable.includes(term);
+      });
+
+      if (filtered.length === 0) {
+        offerList.innerHTML =
+          '<div class="empty">Keine passenden Angebote gefunden.</div>';
+        return;
+      }
+
+      offerList.innerHTML = filtered.map(offer => {
+        const paused = isPaused(offer);
+        const title = escapeHtml(
+          offer.Titel_des_Angebots || "Ohne Titel"
+        );
+
+        const faculty = escapeHtml(
+          facultyLabels[offer.Fakultaet] ||
+          offer.Fakultaet ||
+          "Keine Fakultät"
+        );
+
+        const format = escapeHtml(offer.Format || "");
+        const area = escapeHtml(offer.Bereich || "");
+
+        return `
+          <article class="offer">
+            <div class="offer-info">
+              <h3>${title}</h3>
+              <div class="offer-meta">
+                ${faculty}
+                ${format ? " · " + format : ""}
+                ${area ? " · " + area : ""}
+              </div>
+            </div>
+
+            <div class="offer-actions">
+              <span class="badge ${paused ? "paused" : "active"}">
+                ${paused ? "Pausiert" : "Aktiv"}
+              </span>
+              <button type="button" disabled>Bearbeiten</button>
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    async function loadOffers() {
+      try {
+        // Appwrite liefert standardmäßig nur eine begrenzte
+        // Anzahl an Zeilen. Deshalb laden wir seitenweise.
+        const result = [];
+        const pageSize = 100;
+        let offset = 0;
+
+        while (true) {
+          const url = new URL(
+            `${APPWRITE_ENDPOINT}/tablesdb/${DATABASE_ID}` +
+            `/tables/${TABLE_ID}/rows`
+          );
+
+          url.searchParams.append(
+            "queries[]",
+            JSON.stringify({
+              method: "limit",
+              values: [pageSize]
+            })
+          );
+
+          url.searchParams.append(
+            "queries[]",
+            JSON.stringify({
+              method: "offset",
+              values: [offset]
+            })
+          );
+
+          const response = await fetch(url, {
+            headers: {
+              "X-Appwrite-Project": PROJECT_ID,
+              "X-Appwrite-Response-Format": "1.9.5"
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error(
+              `Appwrite-Fehler: ${response.status}`
+            );
+          }
+
+          const data = await response.json();
+          const rows = data.rows || [];
+
+          result.push(...rows);
+
+          if (rows.length < pageSize) break;
+
+          offset += rows.length;
+        }
+
+        allOffers = result;
+        updateStats();
+        renderOffers();
+
+      } catch (error) {
+        console.error("Angebote konnten nicht geladen werden:", error);
+
+        offerList.innerHTML = `
+          <div class="empty">
+            Die Angebote konnten nicht geladen werden.
+            Bitte prüfe die Appwrite-Verbindung.
+          </div>
+        `;
+      }
+    }
+
+    searchInput.addEventListener("input", renderOffers);
+    loadOffers();
+  </script>
+</body>
+</html>
