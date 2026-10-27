@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Angebotsverwaltung | MINT-Bibliothek TH Rosenheim</title>
+
   <style>
     :root {
       --blue: #164b82;
@@ -14,6 +15,8 @@
       --muted: #69798a;
       --border: #e2e8ee;
       --white: #fff;
+      --green: #247543;
+      --red: #a95420;
     }
 
     * { box-sizing: border-box; }
@@ -25,6 +28,8 @@
       color: var(--text);
       line-height: 1.5;
     }
+
+    .hidden { display: none !important; }
 
     header {
       background: var(--white);
@@ -80,7 +85,7 @@
       margin-bottom: 28px;
     }
 
-    .stat, .panel {
+    .stat, .panel, .login-card {
       background: var(--white);
       border: 1px solid var(--border);
       border-radius: 14px;
@@ -94,9 +99,7 @@
       margin-top: 5px;
     }
 
-    .panel {
-      padding: 24px;
-    }
+    .panel { padding: 24px; }
 
     .toolbar {
       display: flex;
@@ -148,6 +151,60 @@
       color: var(--blue);
     }
 
+    .login-wrap {
+      min-height: 65vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 430px;
+      padding: 32px;
+    }
+
+    .login-icon {
+      font-size: 30px;
+      margin-bottom: 12px;
+    }
+
+    .login-card h2 { margin-bottom: 8px; }
+
+    .login-card label {
+      display: block;
+      font-weight: 600;
+      font-size: 14px;
+      margin: 22px 0 7px;
+    }
+
+    .login-card input {
+      max-width: none;
+    }
+
+    .login-card button {
+      width: 100%;
+      margin-top: 16px;
+    }
+
+    .message {
+      margin-top: 15px;
+      font-size: 14px;
+      border-radius: 9px;
+      padding: 11px 13px;
+    }
+
+    .message.error {
+      background: #fff0ec;
+      color: #9b3525;
+    }
+
+    .message.success {
+      background: #e7f5eb;
+      color: var(--green);
+    }
+
     .offer-list {
       display: grid;
       gap: 12px;
@@ -168,9 +225,7 @@
       margin: 0 0 5px;
     }
 
-    .offer-info {
-      min-width: 0;
-    }
+    .offer-info { min-width: 0; }
 
     .offer-meta {
       color: var(--muted);
@@ -195,12 +250,12 @@
 
     .active {
       background: #e7f5eb;
-      color: #247543;
+      color: var(--green);
     }
 
     .paused {
       background: #fff0e7;
-      color: #a95420;
+      color: var(--red);
     }
 
     .notice {
@@ -225,6 +280,7 @@
       .panel { padding: 17px; }
       main { padding: 20px 14px; }
       h1 { font-size: 23px; }
+      .login-card { padding: 24px; }
     }
   </style>
 </head>
@@ -238,19 +294,65 @@
     </div>
   </header>
 
-  <main>
+  <!-- PASSWORTABFRAGE -->
+  <section id="loginView" class="login-wrap">
+    <div class="login-card">
+      <div class="login-icon">🔐</div>
+      <h2>Verwaltungsbereich</h2>
+      <p class="muted">
+        Gib das gemeinsame Verwaltungspasswort ein,
+        um das Dashboard zu öffnen.
+      </p>
+
+      <form id="loginForm">
+        <label for="passwordInput">Verwaltungspasswort</label>
+        <input
+          id="passwordInput"
+          type="password"
+          placeholder="Passwort eingeben"
+          autocomplete="current-password"
+          required
+        >
+
+        <button id="loginButton" type="submit">
+          Anmelden
+        </button>
+      </form>
+
+      <div
+        id="loginMessage"
+        class="message hidden"
+        role="status"
+        aria-live="polite"
+      ></div>
+
+      <p class="muted" style="margin-top:20px">
+        <a href="index.html">← Zur öffentlichen Angebotsbibliothek</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- DASHBOARD -->
+  <main id="dashboardView" class="hidden">
     <div class="intro">
       <div>
         <h2>Dashboard</h2>
-        <p class="muted">Übersicht über die bestehenden MINT-Angebote</p>
+        <p class="muted">
+          Übersicht über die bestehenden MINT-Angebote
+        </p>
       </div>
-      <a class="back-link" href="index.html">← Zur Angebotsbibliothek</a>
+
+      <button id="logoutButton" type="button">
+        Abmelden
+      </button>
     </div>
 
     <div class="notice">
       <strong>Vorschau-Modus:</strong>
-      Angebote werden nur angezeigt. Erstellen und Bearbeiten
-      aktivieren wir später mit einer sicheren Passwortprüfung.
+      Die Anmeldung funktioniert bereits.
+      Das Erstellen und Bearbeiten von Angeboten
+      schalten wir erst nach Einrichtung der
+      serverseitigen Berechtigungen frei.
     </div>
 
     <section class="stats" aria-label="Statistik">
@@ -272,7 +374,9 @@
 
     <section class="panel">
       <h2>Alle Angebote</h2>
-      <p class="muted">Suche nach Titel, Fakultät oder Bereich.</p>
+      <p class="muted">
+        Suche nach Titel, Fakultät oder Bereich.
+      </p>
 
       <div class="toolbar">
         <input
@@ -281,7 +385,10 @@
           placeholder="Angebot suchen …"
           aria-label="Angebot suchen"
         >
-        <button type="button" disabled>+ Neues Angebot</button>
+
+        <button type="button" disabled>
+          + Neues Angebot
+        </button>
       </div>
 
       <div id="offerList" class="offer-list">
@@ -291,12 +398,29 @@
   </main>
 
   <script>
-    // Verbindung zur bestehenden Appwrite-Datenbank
+    // ==================================================
+    // APPWRITE-EINSTELLUNGEN
+    // ==================================================
+
     const APPWRITE_ENDPOINT = "https://cloud.appwrite.io/v1";
     const PROJECT_ID = "6a902517000542f46530";
     const DATABASE_ID = "6a902c4f0026523fc9c5";
     const TABLE_ID = "angebote_informatik";
 
+    const ADMIN_FUNCTION_URL =
+      "https://mint-angebote-thro.fra.appwrite.run";
+
+    // ==================================================
+    // ELEMENTE
+    // ==================================================
+
+    const loginView = document.getElementById("loginView");
+    const dashboardView = document.getElementById("dashboardView");
+    const loginForm = document.getElementById("loginForm");
+    const loginButton = document.getElementById("loginButton");
+    const loginMessage = document.getElementById("loginMessage");
+    const passwordInput = document.getElementById("passwordInput");
+    const logoutButton = document.getElementById("logoutButton");
     const offerList = document.getElementById("offerList");
     const searchInput = document.getElementById("searchInput");
 
@@ -317,6 +441,75 @@
       Andere: "Andere"
     };
 
+    // ==================================================
+    // ANMELDUNG
+    // ==================================================
+
+    function showLoginMessage(text, type = "error") {
+      loginMessage.textContent = text;
+      loginMessage.className = `message ${type}`;
+    }
+
+    async function handleLogin(event) {
+      event.preventDefault();
+
+      const password = passwordInput.value;
+
+      loginButton.disabled = true;
+      loginButton.textContent = "Passwort wird geprüft …";
+      loginMessage.classList.add("hidden");
+
+      try {
+        const response = await fetch(ADMIN_FUNCTION_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ password })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(
+            result.message || "Anmeldung fehlgeschlagen."
+          );
+        }
+
+        // Passwort wird nicht im Browser gespeichert.
+        passwordInput.value = "";
+
+        loginView.classList.add("hidden");
+        dashboardView.classList.remove("hidden");
+
+        await loadOffers();
+
+      } catch (error) {
+        console.error("Anmeldefehler:", error);
+
+        showLoginMessage(
+          error.message || "Die Anmeldung ist fehlgeschlagen."
+        );
+
+      } finally {
+        loginButton.disabled = false;
+        loginButton.textContent = "Anmelden";
+      }
+    }
+
+    function handleLogout() {
+      // Noch keine dauerhafte Sitzung vorhanden.
+      // Beim Neuladen ist eine erneute Anmeldung nötig.
+      dashboardView.classList.add("hidden");
+      loginView.classList.remove("hidden");
+      loginMessage.classList.add("hidden");
+      passwordInput.value = "";
+    }
+
+    // ==================================================
+    // ANGEBOTE
+    // ==================================================
+
     function escapeHtml(value) {
       return String(value ?? "")
         .replace(/&/g, "&amp;")
@@ -331,7 +524,11 @@
 
       if (offer.Pausiert_bis) {
         const date = new Date(offer.Pausiert_bis);
-        if (!Number.isNaN(date.getTime()) && date > new Date()) {
+
+        if (
+          !Number.isNaN(date.getTime()) &&
+          date > new Date()
+        ) {
           return true;
         }
       }
@@ -375,6 +572,7 @@
 
       offerList.innerHTML = filtered.map(offer => {
         const paused = isPaused(offer);
+
         const title = escapeHtml(
           offer.Titel_des_Angebots || "Ohne Titel"
         );
@@ -392,6 +590,7 @@
           <article class="offer">
             <div class="offer-info">
               <h3>${title}</h3>
+
               <div class="offer-meta">
                 ${faculty}
                 ${format ? " · " + format : ""}
@@ -403,7 +602,10 @@
               <span class="badge ${paused ? "paused" : "active"}">
                 ${paused ? "Pausiert" : "Aktiv"}
               </span>
-              <button type="button" disabled>Bearbeiten</button>
+
+              <button type="button" disabled>
+                Bearbeiten
+              </button>
             </div>
           </article>
         `;
@@ -412,8 +614,6 @@
 
     async function loadOffers() {
       try {
-        // Appwrite liefert standardmäßig nur eine begrenzte
-        // Anzahl an Zeilen. Deshalb laden wir seitenweise.
         const result = [];
         const pageSize = 100;
         let offset = 0;
@@ -479,8 +679,13 @@
       }
     }
 
+    // ==================================================
+    // EVENTS
+    // ==================================================
+
+    loginForm.addEventListener("submit", handleLogin);
+    logoutButton.addEventListener("click", handleLogout);
     searchInput.addEventListener("input", renderOffers);
-    loadOffers();
   </script>
 </body>
 </html>
