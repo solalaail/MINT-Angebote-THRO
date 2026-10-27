@@ -16,7 +16,8 @@ const DATABASE_ID = "6a902c4f0026523fc9c5";
 const TABLE_ID = "angebote_informatik";
 const MATERIALS_TABLE_ID = "materialien";
 const REQUESTS_TABLE_ID = "anfragen";
-
+const REQUEST_FUNCTION_URL =
+  "https://6aa14d280031b1e7a9ba.fra.appwrite.run";
 const MATERIALS_BUCKET_ID = "6a9fde2300387d9f36fb";
 
 const LOAD_LIMIT = 150;
@@ -1506,106 +1507,101 @@ function renderRequestList() {
 
 
 // ============================================================
-// 19. ANFRAGE VORBEREITEN
+// 19. ANFRAGE ABSENDEN
 // ============================================================
 
-function handleRequestSubmit(event) {
+async function handleRequestSubmit(event) {
   event.preventDefault();
 
-  const selected =
-    getSelectedOffers();
+  const selected = getSelectedOffers();
 
   if (selected.length === 0) {
     return;
   }
 
+  const formData = new FormData(requestFormEl);
+  const name = asText(formData.get("name"));
 
-  const formData =
-    new FormData(requestFormEl);
+  const offerIds = selected.map(getId);
 
+  const submitButton =
+    requestFormEl.querySelector('button[type="submit"]');
 
-  const name =
-    asText(formData.get("name"));
+  const originalButtonText =
+    submitButton ? submitButton.textContent : "";
 
-  const email =
-    asText(formData.get("email"));
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = "Anfrage wird gespeichert …";
+  }
 
-  const school =
-    asText(formData.get("school"));
+  requestSuccessEl.classList.add("hidden");
 
-  const groupSize =
-    asText(formData.get("groupSize"));
+  try {
+    const response = await fetch(REQUEST_FUNCTION_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ offerIds })
+    });
 
-  const date =
-    asText(formData.get("date"));
+    const result = await response.json();
 
-  const message =
-    asText(formData.get("message"));
-
-
-  const contacts = [
-    ...new Set(
-      selected
-        .map(getContactMail)
-        .filter(Boolean)
-    )
-  ];
-
-
-  const offerSummary = selected
-    .map(row => {
-      return (
-        `• ${getTitle(row)} ` +
-        `(${getFormatLabel(getFormat(row))})`
+    if (!response.ok || !result.success) {
+      throw new Error(
+        result.message || "Die Anfrage konnte nicht gespeichert werden."
       );
-    })
-    .join("\n");
-
-
-  console.log(
-    "Vorbereitete Anfrage:",
-    {
-      name,
-      email,
-      school,
-      groupSize,
-      date,
-      message,
-      contacts,
-      offers: offerSummary
     }
-  );
 
+    requestSuccessEl.classList.remove("hidden");
 
-  requestSuccessEl.classList.remove(
-    "hidden"
-  );
+    requestSuccessEl.innerHTML = `
+      <strong>Anfrage erfolgreich erfasst ✓</strong>
+      <p>
+        Danke ${escapeHtml(name)}.
+        Deine Anfrage für ${selected.length}
+        ${selected.length === 1 ? "Angebot wurde" : "Angebote wurden"}
+        gespeichert.
+      </p>
+      <p>
+        Hinweis: Es wurde noch keine E-Mail verschickt.
+        Der automatische E-Mail-Versand folgt später.
+      </p>
+    `;
 
+    selectedOfferIds = [];
+    saveSelection();
+    updateRequestCount();
+    requestFormEl.reset();
 
-  requestSuccessEl.innerHTML = `
-    <strong>
-      Anfrage ist vorbereitet ✓
-    </strong>
+    try {
+      await loadRequests();
+    } catch (error) {
+      console.warn("Kapazitätsdaten konnten nicht aktualisiert werden:", error);
+    }
 
-    <p>
-      Danke ${escapeHtml(name)}.
-      Deine Auswahl und deine Angaben wurden
-      korrekt erfasst.
-    </p>
+    renderOffers();
+    renderRequestList();
 
-    <p>
-      Ausgewählte Angebote:
-      <strong>${selected.length}</strong>
-    </p>
+  } catch (error) {
+    console.error("Fehler beim Absenden:", error);
 
-    <p>
-      Der automatische E-Mail-Versand und das
-      Speichern der echten Anfrage werden als
-      nächster Schritt eingerichtet.
-    </p>
-  `;
+    requestSuccessEl.classList.remove("hidden");
+
+    requestSuccessEl.innerHTML = `
+      <strong>Anfrage konnte nicht gespeichert werden.</strong>
+      <p>${escapeHtml(error.message)}</p>
+      <p>Deine ausgewählten Angebote bleiben erhalten.</p>
+    `;
+
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = originalButtonText;
+    }
+  }
 }
-
 
 // ============================================================
 // 20. FILTER EIN-/AUSKLAPPEN
