@@ -2160,3 +2160,70 @@ textarea:focus {
   }
 
 }
+
+/* ==========================================
+   HEADER: MEINE ANFRAGE + INTERNER BEREICH
+   ========================================== */
+
+.hero-top > div:first-child {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.hero-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.internal-area-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 16px;
+  margin: 0;
+  border: 1px solid #cbd8e5;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #164b82;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.2s ease;
+}
+
+.internal-area-link:hover {
+  background: #edf4fa;
+}
+
+.internal-lock {
+  color: #e87722;
+  flex-shrink: 0;
+}
+
+/* Auf kleineren Bildschirmen dürfen
+   die Buttons umbrechen. */
+
+@media (max-width: 850px) {
+  .hero-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .internal-area-link {
+    width: 100%;
+  }
+}
