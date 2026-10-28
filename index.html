@@ -1,112 +1,65 @@
+
 <!doctype html>
 <html lang="de">
 
-<style>
-  .internal-area-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    margin: 12px 0;
-    border: 1px solid #cbd8e5;
-    border-radius: 10px;
-    background: #ffffff;
-    color: #164b82;
-    font-size: 14px;
-    font-weight: 600;
-    text-decoration: none;
-    transition: background 0.2s ease;
-  }
-
-  .internal-area-link:hover {
-    background: #edf4fa;
-  }
-</style>
-
 <head>
   <meta charset="utf-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1"
-  >
-
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Workshop-Angebote</title>
-
   <meta
     name="description"
     content="Workshop-Angebote der Hochschule durchsuchen und anfragen"
   >
-
-  <link
-    rel="stylesheet"
-    href="style.css"
-  >
+  <link rel="stylesheet" href="style.css">
 </head>
-
 
 <body>
 
-  <!-- =====================================================
-       KOPFBEREICH
-       ===================================================== -->
-
+  <!-- KOPFBEREICH -->
   <header class="hero">
-
     <div class="container">
 
       <div class="hero-top">
-
         <div>
-
-          <p class="eyebrow">
-            Schulworkshop-Bibliothek
-          </p>
-
-          <h1>
-            Workshop-Angebote entdecken
-          </h1>
-
+          <p class="eyebrow">Schulworkshop-Bibliothek</p>
+          <h1>Workshop-Angebote entdecken</h1>
         </div>
 
-<div class="hero-actions">
-        <button
-          id="requestListButton"
-          class="request-list-button"
-          type="button"
-        >
-          Meine Anfrage
-
-          <span
-            id="requestCount"
-            class="request-count"
+        <div class="hero-actions">
+          <button
+            id="requestListButton"
+            class="request-list-button"
+            type="button"
           >
-            0
-          </span>
-        </button>
+            Meine Anfrage
+            <span id="requestCount" class="request-count">0</span>
+          </button>
 
-<a href="bearbeiten.html" class="internal-area-link">
-  <svg
-    class="internal-lock"
-    xmlns="http://www.w3.org/2000/svg"
-    width="18"
-    height="18"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    stroke-width="2.2"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-    aria-hidden="true"
-  >
-    <rect x="4" y="10" width="16" height="11" rx="2"></rect>
-    <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
-  </svg>
-  Interner Bereich
-</a>
-
+          <a
+            href="bearbeiten.html"
+            class="internal-area-link"
+            aria-label="Zum internen Verwaltungsbereich"
+          >
+            <svg
+              class="internal-lock"
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="4" y="10" width="16" height="11" rx="2"></rect>
+              <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+            </svg>
+            Interner Bereich
+          </a>
+        </div>
       </div>
-
 
       <p class="intro">
         Finde passende Workshops, Laborführungen,
@@ -114,17 +67,9 @@
         der Hochschule.
       </p>
 
-
-      <!-- ===================================================
-           SUCHE
-           =================================================== -->
-
+      <!-- SUCHE -->
       <div class="search-panel">
-
-        <label
-          class="sr-only"
-          for="search"
-        >
+        <label class="sr-only" for="search">
           Angebote durchsuchen
         </label>
 
@@ -133,14 +78,9 @@
           type="search"
           placeholder="Nach Titel, Thema oder Beschreibung suchen …"
         >
-
       </div>
 
-
-      <!-- ===================================================
-           FILTER BUTTON
-           =================================================== -->
-
+      <!-- FILTER BUTTON -->
       <button
         id="filterToggle"
         class="filter-toggle"
@@ -151,137 +91,62 @@
         Filter
       </button>
 
-
-      <!-- ===================================================
-           FILTER
-           =================================================== -->
-
+      <!-- FILTER -->
       <div
         id="filterPanel"
         class="filter-panel filter-panel-hidden"
       >
 
         <div class="filter-group">
-
-          <label for="facultyFilter">
-            Fakultät
-          </label>
-
+          <label for="facultyFilter">Fakultät</label>
           <select id="facultyFilter">
-
-            <option value="">
-              Alle Fakultäten
-            </option>
-
+            <option value="">Alle Fakultäten</option>
           </select>
-
         </div>
 
-
         <div class="filter-group">
-
-          <label for="areaFilter">
-            Bereich
-          </label>
-
+          <label for="areaFilter">Bereich</label>
           <select id="areaFilter">
-
-            <option value="">
-              Alle Bereiche
-            </option>
-
+            <option value="">Alle Bereiche</option>
           </select>
-
         </div>
 
-
         <div class="filter-group">
-
-          <label for="formatFilter">
-            Format
-          </label>
-
+          <label for="formatFilter">Format</label>
           <select id="formatFilter">
-
-            <option value="">
-              Alle Formate
-            </option>
-
+            <option value="">Alle Formate</option>
           </select>
-
         </div>
 
-
         <div class="filter-group">
-
-          <label for="gradeFilter">
-            Klassenstufe
-          </label>
-
+          <label for="gradeFilter">Klassenstufe</label>
           <select id="gradeFilter">
-
-            <option value="">
-              Alle Klassenstufen
-            </option>
-
+            <option value="">Alle Klassenstufen</option>
           </select>
-
         </div>
 
-
         <div class="filter-group">
-
-          <label for="durationFilter">
-            Dauer
-          </label>
-
+          <label for="durationFilter">Dauer</label>
           <select id="durationFilter">
-
-            <option value="">
-              Alle Dauern
-            </option>
-
+            <option value="">Alle Dauern</option>
           </select>
-
         </div>
 
-
         <div class="filter-group">
-
-          <label for="capacityFilter">
-            Personenanzahl
-          </label>
-
+          <label for="capacityFilter">Personenanzahl</label>
           <select id="capacityFilter">
-
-            <option value="">
-              Alle Gruppengrößen
-            </option>
-
+            <option value="">Alle Gruppengrößen</option>
           </select>
-
         </div>
-
 
         <div class="filter-group">
-
-          <label for="locationFilter">
-            Ort
-          </label>
-
+          <label for="locationFilter">Ort</label>
           <select id="locationFilter">
-
-            <option value="">
-              Alle Orte
-            </option>
-
+            <option value="">Alle Orte</option>
           </select>
-
         </div>
-
 
         <div class="filter-actions">
-
           <button
             id="resetFilters"
             class="reset-button"
@@ -289,53 +154,25 @@
           >
             Filter zurücksetzen
           </button>
-
         </div>
 
       </div>
-
     </div>
-
-<a
-  href="bearbeiten.html"
-  class="internal-area-link"
-  aria-label="Zum internen Verwaltungsbereich"
->
-  🔒 Interner Bereich
-</a>
-
   </header>
 
-
-  <!-- =====================================================
-       ANGEBOTE
-       ===================================================== -->
-
+  <!-- ANGEBOTE -->
   <main class="container main">
 
     <div class="result-header">
-
-      <h2>
-        Angebote
-      </h2>
-
-      <p
-        id="resultCount"
-        aria-live="polite"
-      >
+      <h2>Angebote</h2>
+      <p id="resultCount" aria-live="polite">
         Wird geladen …
       </p>
-
     </div>
 
-
-    <div
-      id="status"
-      class="status"
-    >
+    <div id="status" class="status">
       Angebote werden geladen …
     </div>
-
 
     <section
       id="offers"
@@ -346,22 +183,16 @@
 
   </main>
 
-
-  <!-- =====================================================
-       DETAILFENSTER
-       ===================================================== -->
-
+  <!-- DETAILFENSTER -->
   <div
     id="detailModal"
     class="modal modal-hidden"
     aria-hidden="true"
   >
-
     <div
       class="modal-backdrop"
       data-close-detail
     ></div>
-
 
     <div
       class="modal-dialog"
@@ -369,7 +200,6 @@
       aria-modal="true"
       aria-labelledby="detailTitle"
     >
-
       <button
         id="closeDetail"
         class="modal-close"
@@ -379,30 +209,20 @@
         ×
       </button>
 
-
-      <div id="detailContent">
-      </div>
-
+      <div id="detailContent"></div>
     </div>
-
   </div>
 
-
-  <!-- =====================================================
-       ANFRAGEFENSTER
-       ===================================================== -->
-
+  <!-- ANFRAGEFENSTER -->
   <div
     id="requestModal"
     class="modal modal-hidden"
     aria-hidden="true"
   >
-
     <div
       class="modal-backdrop"
       data-close-request
     ></div>
-
 
     <div
       class="modal-dialog request-dialog"
@@ -420,139 +240,99 @@
         ×
       </button>
 
+      <p class="eyebrow">Sammelanfrage</p>
 
-      <p class="eyebrow">
-        Sammelanfrage
-      </p>
-
-
-      <h2 id="requestTitle">
-        Meine Anfrage
-      </h2>
-
+      <h2 id="requestTitle">Meine Anfrage</h2>
 
       <p class="request-intro">
         Hier kannst du mehrere Angebote sammeln
         und anschließend gemeinsam anfragen.
       </p>
 
-
-      <div id="requestItems">
-      </div>
-
+      <div id="requestItems"></div>
 
       <div
         id="requestFormArea"
         class="request-form-area"
       >
-
-        <h3>
-          Deine Angaben
-        </h3>
-
+        <h3>Deine Angaben</h3>
 
         <form id="requestForm">
-
           <div class="form-grid">
 
-
             <div class="form-group">
-
               <label for="requestName">
                 Name *
               </label>
-
               <input
                 id="requestName"
                 name="name"
                 type="text"
                 required
               >
-
             </div>
 
-
             <div class="form-group">
-
               <label for="requestEmail">
                 E-Mail *
               </label>
-
               <input
                 id="requestEmail"
                 name="email"
                 type="email"
                 required
               >
-
             </div>
 
-
             <div class="form-group">
-
               <label for="requestSchool">
                 Schule / Klasse
               </label>
-
               <input
                 id="requestSchool"
                 name="school"
                 type="text"
                 placeholder="z. B. Realschule Rosenheim, 9b"
               >
-
             </div>
 
-
             <div class="form-group">
-
               <label for="requestGroupSize">
                 Gruppengröße
               </label>
-
               <input
                 id="requestGroupSize"
                 name="groupSize"
                 type="text"
                 placeholder="z. B. 24 Personen"
               >
-
             </div>
 
-
             <div class="form-group form-group-full">
-
               <label for="requestDate">
                 Terminwunsch
               </label>
-
               <input
                 id="requestDate"
                 name="date"
                 type="text"
                 placeholder="z. B. Oktober 2026, vormittags"
               >
-
             </div>
 
-
             <div class="form-group form-group-full">
-
               <label for="requestMessage">
                 Nachricht
               </label>
-
               <textarea
                 id="requestMessage"
                 name="message"
                 rows="5"
                 placeholder="Weitere Hinweise oder Wünsche …"
               ></textarea>
-
             </div>
 
           </div>
-
 
           <button
             class="primary-button request-submit"
@@ -561,45 +341,28 @@
             Anfrage vorbereiten
           </button>
 
-
           <p class="form-note">
             Der echte E-Mail-Versand wird später
             über Appwrite angebunden.
           </p>
 
         </form>
-
       </div>
-
 
       <div
         id="requestSuccess"
         class="success-message hidden"
-      >
-      </div>
+      ></div>
 
     </div>
-
   </div>
 
-
-  <!-- =====================================================
-       FOOTER
-       ===================================================== -->
-
+  <!-- FOOTER -->
   <footer class="container footer">
-
-    <p>
-      MINT-Angebote der Hochschule
-    </p>
-
+    <p>MINT-Angebote der Hochschule</p>
   </footer>
-
 
   <script src="app.js"></script>
 
 </body>
-
-</html>
-
 </html>
