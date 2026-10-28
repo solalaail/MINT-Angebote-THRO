@@ -262,15 +262,17 @@ export default async ({ req, res, log, error }) => {
     }, allowedOrigin);
   }
 
-  if (action !== "update") {
-    return respond(res, 400, {
-      success: false,
-      message: "Unbekannte Aktion."
-    }, allowedOrigin);
-  }
+ if (action !== "update" && action !== "create") {
+  return respond(res, 400, {
+    success: false,
+    message: "Unbekannte Aktion."
+  }, allowedOrigin);
+}
 
-  const rowId = body.rowId;
+ const rowId = body.rowId;
 
+// Nur beim Bearbeiten ist eine bestehende Angebots-ID nötig.
+if (action === "update") {
   if (
     typeof rowId !== "string" ||
     !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,35}$/.test(rowId)
@@ -280,15 +282,45 @@ export default async ({ req, res, log, error }) => {
       message: "Ungültige Angebots-ID."
     }, allowedOrigin);
   }
+}
 
-  try {
-    validateChanges(body.changes);
-  } catch (err) {
-    return respond(res, 400, {
-      success: false,
-      message: err.message
-    }, allowedOrigin);
+// Beim Anlegen darf keine bestehende ID übermittelt werden.
+if (action === "create" && rowId !== undefined) {
+  return respond(res, 400, {
+    success: false,
+    message: "Beim Anlegen darf keine Angebots-ID angegeben werden."
+  }, allowedOrigin);
+}
+
+try {
+  validateChanges(body.changes);
+
+  if (action === "create") {
+    const requiredFields = [
+      "Titel_des_Angebots",
+      "Platz_fuer_wie_viele",
+      "Beschreibung",
+      "Bereich",
+      "Format",
+      "Klassenstufe",
+      "Kontakt_Mail",
+      "Aktiv"
+    ];
+
+    for (const field of requiredFields) {
+      if (!Object.hasOwn(body.changes, field)) {
+        throw new Error(
+          "Pflichtfeld fehlt: " + field
+        );
+      }
+    }
   }
+} catch (err) {
+  return respond(res, 400, {
+    success: false,
+    message: err.message
+  }, allowedOrigin);
+}
 
   const apiKey =
     process.env.MINT_ADMIN_API_KEY ||
@@ -303,28 +335,38 @@ export default async ({ req, res, log, error }) => {
     }, allowedOrigin);
   }
 
-  const url =
-    APPWRITE_ENDPOINT +
-    "/tablesdb/" +
-    encodeURIComponent(DATABASE_ID) +
-    "/tables/" +
-    encodeURIComponent(TABLE_ID) +
-    "/rows/" +
-    encodeURIComponent(rowId);
+const baseUrl =
+  APPWRITE_ENDPOINT +
+  "/tablesdb/" +
+  encodeURIComponent(DATABASE_ID) +
+  "/tables/" +
+  encodeURIComponent(TABLE_ID) +
+  "/rows";
+
+const url = action === "create"
+  ? baseUrl
+  : baseUrl + "/" + encodeURIComponent(rowId);
 
   try {
-    const response = await fetch(url, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Appwrite-Project": PROJECT_ID,
-        "X-Appwrite-Key": apiKey
-      },
-      body: JSON.stringify({
-        data: body.changes
-      }),
-      signal: AbortSignal.timeout(10000)
-    });
+  const response = await fetch(url, {
+  method: action === "create" ? "POST" : "PATCH",
+  headers: {
+    "Content-Type": "application/json",
+    "X-Appwrite-Project": PROJECT_ID,
+    "X-Appwrite-Key": apiKey
+  },
+  body: JSON.stringify(
+    action === "create"
+      ? {
+          rowId: "unique()",
+          data: body.changes
+        }
+      : {
+          data: body.changes
+        }
+  ),
+  signal: AbortSignal.timeout(10000)
+});
 
     const result = await response.json();
 
@@ -342,13 +384,19 @@ export default async ({ req, res, log, error }) => {
       }, allowedOrigin);
     }
 
-    log("Angebot erfolgreich aktualisiert.");
+log(
+  action === "create"
+    ? "Neues Angebot erfolgreich angelegt."
+    : "Angebot erfolgreich aktualisiert."
+);
 
-    return respond(res, 200, {
-      success: true,
-      message: "Angebot erfolgreich gespeichert.",
-      rowId: result.$id
-    }, allowedOrigin);
+return respond(res, 200, {
+  success: true,
+  message: action === "create"
+    ? "Neues Angebot erfolgreich angelegt."
+    : "Angebot erfolgreich gespeichert.",
+  rowId: result.$id
+}, allowedOrigin);
 
   } catch (err) {
     error("Fehler beim Speichern: " + err.message);
