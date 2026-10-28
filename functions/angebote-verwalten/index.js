@@ -7,7 +7,24 @@ const ALLOWED_ORIGIN =
 const APPWRITE_ENDPOINT = "https://cloud.appwrite.io/v1";
 const PROJECT_ID = "6a902517000542f46530";
 const DATABASE_ID = "6a902c4f0026523fc9c5";
+
 const TABLE_ID = "angebote_informatik";
+const MATERIAL_TABLE_ID = "materialien";
+const BUCKET_ID = "6a9fde2300387d9f36fb";
+
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
+
+const ALLOWED_FILE_TYPES = {
+  pdf: [
+    "application/pdf"
+  ],
+  docx: [
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  ],
+  pptx: [
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+  ]
+};
 
 const ENUMS = {
   Bereich: [
@@ -102,6 +119,43 @@ function passwordsMatch(input, expected) {
   return crypto.timingSafeEqual(a, b);
 }
 
+function validId(value) {
+  return (
+    typeof value === "string" &&
+    /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,35}$/.test(value)
+  );
+}
+
+function apiHeaders(apiKey) {
+  return {
+    "X-Appwrite-Project": PROJECT_ID,
+    "X-Appwrite-Key": apiKey
+  };
+}
+
+function tableRowsUrl(tableId) {
+  return (
+    APPWRITE_ENDPOINT +
+    "/tablesdb/" +
+    encodeURIComponent(DATABASE_ID) +
+    "/tables/" +
+    encodeURIComponent(tableId) +
+    "/rows"
+  );
+}
+
+function storageFileUrl(fileId = "") {
+  const base =
+    APPWRITE_ENDPOINT +
+    "/storage/buckets/" +
+    encodeURIComponent(BUCKET_ID) +
+    "/files";
+
+  return fileId
+    ? base + "/" + encodeURIComponent(fileId)
+    : base;
+}
+
 function validateChanges(changes) {
   if (
     !changes ||
@@ -114,12 +168,14 @@ function validateChanges(changes) {
   const keys = Object.keys(changes);
 
   if (keys.length === 0) {
-    throw new Error("Keine Änderungen übermittelt.");
+    throw new Error("Keine Angebotsdaten übermittelt.");
   }
 
   for (const key of keys) {
     if (!ALLOWED_FIELDS.has(key)) {
-      throw new Error("Dieses Feld darf nicht geändert werden: " + key);
+      throw new Error(
+        "Dieses Feld ist nicht erlaubt: " + key
+      );
     }
 
     const value = changes[key];
@@ -132,32 +188,47 @@ function validateChanges(changes) {
       ) {
         throw new Error("Ungültiger Wert für " + key);
       }
+
     } else if (Object.hasOwn(OPTIONAL_STRINGS, key)) {
       if (
         value !== null &&
-        (typeof value !== "string" ||
-          value.length > OPTIONAL_STRINGS[key])
+        (
+          typeof value !== "string" ||
+          value.length > OPTIONAL_STRINGS[key]
+        )
       ) {
         throw new Error("Ungültiger Wert für " + key);
       }
+
     } else if (key === "Beschreibung") {
-      if (typeof value !== "string" || !value.trim()) {
-        throw new Error("Die Beschreibung darf nicht leer sein.");
+      if (
+        typeof value !== "string" ||
+        !value.trim()
+      ) {
+        throw new Error(
+          "Die Beschreibung darf nicht leer sein."
+        );
       }
+
     } else if (key === "Kontakt_Mail") {
       if (
         typeof value !== "string" ||
         value.length > 254 ||
         !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
       ) {
-        throw new Error("Bitte eine gültige Kontakt-E-Mail eingeben.");
+        throw new Error(
+          "Bitte eine gültige Kontakt-E-Mail eingeben."
+        );
       }
+
     } else if (Object.hasOwn(ENUMS, key)) {
       if (
         value !== null &&
         !ENUMS[key].includes(value)
       ) {
-        throw new Error("Ungültige Auswahl für " + key);
+        throw new Error(
+          "Ungültige Auswahl für " + key
+        );
       }
 
       if (
@@ -166,24 +237,402 @@ function validateChanges(changes) {
       ) {
         throw new Error(key + " ist ein Pflichtfeld.");
       }
+
     } else if (key === "Aktiv") {
       if (typeof value !== "boolean") {
-        throw new Error("Aktiv muss wahr oder falsch sein.");
+        throw new Error(
+          "Aktiv muss wahr oder falsch sein."
+        );
       }
+
     } else if (key === "pausiert_bis") {
       if (
         value !== null &&
-        (typeof value !== "string" ||
-          !Number.isFinite(Date.parse(value)))
+        (
+          typeof value !== "string" ||
+          !Number.isFinite(Date.parse(value))
+        )
       ) {
-        throw new Error("Ungültiges Datum für pausiert_bis.");
+        throw new Error(
+          "Ungültiges Datum für pausiert_bis."
+        );
       }
     }
   }
 }
 
+function validateCreate(changes) {
+  validateChanges(changes);
+
+  const requiredFields = [
+    "Titel_des_Angebots",
+    "Platz_fuer_wie_viele",
+    "Beschreibung",
+    "Bereich",
+    "Format",
+    "Klassenstufe",
+    "Kontakt_Mail",
+    "Aktiv"
+  ];
+
+  for (const field of requiredFields) {
+    if (!Object.hasOwn(changes, field)) {
+      throw new Error(
+        "Pflichtfeld fehlt: " + field
+      );
+    }
+  }
+}
+
+async function saveOffer(action, body, apiKey) {
+  const rowId = body.rowId;
+
+  if (action === "update" && !validId(rowId)) {
+    return {
+      status: 400,
+      data: {
+        success: false,
+        message: "Ungültige Angebots-ID."
+      }
+    };
+  }
+
+  if (
+    action === "create" &&
+    rowId !== undefined
+  ) {
+    return {
+      status: 400,
+      data: {
+        success: false,
+        message:
+          "Beim Anlegen darf keine Angebots-ID angegeben werden."
+      }
+    };
+  }
+
+  try {
+    if (action === "create") {
+      validateCreate(body.changes);
+    } else {
+      validateChanges(body.changes);
+    }
+  } catch (err) {
+    return {
+      status: 400,
+      data: {
+        success: false,
+        message: err.message
+      }
+    };
+  }
+
+  const baseUrl = tableRowsUrl(TABLE_ID);
+
+  const url = action === "create"
+    ? baseUrl
+    : baseUrl + "/" + encodeURIComponent(rowId);
+
+  const payload = action === "create"
+    ? {
+        rowId: "unique()",
+        data: body.changes
+      }
+    : {
+        data: body.changes
+      };
+
+  const response = await fetch(url, {
+    method: action === "create" ? "POST" : "PATCH",
+    headers: {
+      ...apiHeaders(apiKey),
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(10000)
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    return {
+      status: response.status === 404 ? 404 : 500,
+      data: {
+        success: false,
+        message: response.status === 404
+          ? "Angebot nicht gefunden."
+          : "Das Angebot konnte nicht gespeichert werden."
+      }
+    };
+  }
+
+  return {
+    status: 200,
+    data: {
+      success: true,
+      message: action === "create"
+        ? "Neues Angebot erfolgreich angelegt."
+        : "Angebot erfolgreich gespeichert.",
+      rowId: result.$id
+    }
+  };
+}
+
+function decodeUpload(body) {
+  const offerId = body.angebotId;
+  const fileName = body.fileName;
+  const mimeType = body.mimeType;
+  const base64 = body.fileBase64;
+
+  if (!validId(offerId)) {
+    throw new Error("Ungültige Angebots-ID.");
+  }
+
+  if (
+    typeof fileName !== "string" ||
+    !fileName.trim() ||
+    fileName.length > 200 ||
+    /[\/\\\x00-\x1f]/.test(fileName)
+  ) {
+    throw new Error("Ungültiger Dateiname.");
+  }
+
+  const extension =
+    fileName.split(".").pop().toLowerCase();
+
+  if (!Object.hasOwn(ALLOWED_FILE_TYPES, extension)) {
+    throw new Error(
+      "Erlaubt sind nur PDF, DOCX und PPTX."
+    );
+  }
+
+  if (
+    typeof mimeType !== "string" ||
+    !ALLOWED_FILE_TYPES[extension].includes(mimeType)
+  ) {
+    throw new Error(
+      "Der Dateityp passt nicht zur Dateiendung."
+    );
+  }
+
+  if (
+    typeof base64 !== "string" ||
+    !base64 ||
+    base64.length > Math.ceil(MAX_FILE_BYTES / 3) * 4 + 4 ||
+    !/^[A-Za-z0-9+/]+={0,2}$/.test(base64) ||
+    base64.length % 4 !== 0
+  ) {
+    throw new Error("Ungültige oder zu große Datei.");
+  }
+
+  const bytes = Buffer.from(base64, "base64");
+
+  if (
+    bytes.length === 0 ||
+    bytes.length > MAX_FILE_BYTES ||
+    bytes.toString("base64") !== base64
+  ) {
+    throw new Error(
+      "Die Datei darf höchstens 5 MB groß sein."
+    );
+  }
+
+  if (extension === "pdf") {
+    if (
+      bytes.subarray(0, 5).toString("ascii") !== "%PDF-"
+    ) {
+      throw new Error(
+        "Die Datei ist kein gültiger PDF-Dateianfang."
+      );
+    }
+  } else {
+    const zipSignature = bytes.subarray(0, 4);
+
+    if (
+      !zipSignature.equals(
+        Buffer.from([0x50, 0x4b, 0x03, 0x04])
+      )
+    ) {
+      throw new Error(
+        "Die Office-Datei hat kein gültiges ZIP-Format."
+      );
+    }
+  }
+
+  return {
+    offerId,
+    fileName,
+    mimeType,
+    bytes
+  };
+}
+
+async function offerExists(offerId, apiKey) {
+  const response = await fetch(
+    tableRowsUrl(TABLE_ID) +
+      "/" +
+      encodeURIComponent(offerId),
+    {
+      headers: apiHeaders(apiKey),
+      signal: AbortSignal.timeout(10000)
+    }
+  );
+
+  if (response.status === 404) {
+    return false;
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      "Das zugehörige Angebot konnte nicht geprüft werden."
+    );
+  }
+
+  return true;
+}
+
+async function uploadMaterial(body, apiKey, log, error) {
+  let upload;
+
+  try {
+    upload = decodeUpload(body);
+  } catch (err) {
+    return {
+      status: 400,
+      data: {
+        success: false,
+        message: err.message
+      }
+    };
+  }
+
+  if (!await offerExists(upload.offerId, apiKey)) {
+    return {
+      status: 404,
+      data: {
+        success: false,
+        message: "Das zugehörige Angebot existiert nicht."
+      }
+    };
+  }
+
+  const fileId = crypto.randomUUID().replace(/-/g, "");
+
+  const formData = new FormData();
+
+  formData.append("fileId", fileId);
+
+  formData.append(
+    "file",
+    new Blob(
+      [upload.bytes],
+      { type: upload.mimeType }
+    ),
+    upload.fileName
+  );
+
+  const fileResponse = await fetch(
+    storageFileUrl(),
+    {
+      method: "POST",
+      headers: apiHeaders(apiKey),
+      body: formData,
+      signal: AbortSignal.timeout(12000)
+    }
+  );
+
+  if (!fileResponse.ok) {
+    error(
+      "Storage-Upload fehlgeschlagen: HTTP " +
+      fileResponse.status
+    );
+
+    return {
+      status: 502,
+      data: {
+        success: false,
+        message:
+          "Die Datei konnte nicht hochgeladen werden."
+      }
+    };
+  }
+
+  const uploadedFile = await fileResponse.json();
+
+  const materialResponse = await fetch(
+    tableRowsUrl(MATERIAL_TABLE_ID),
+    {
+      method: "POST",
+      headers: {
+        ...apiHeaders(apiKey),
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        rowId: "unique()",
+        data: {
+          Angebot_ID: upload.offerId,
+          Datei_ID: uploadedFile.$id,
+          Titel: upload.fileName
+        }
+      }),
+      signal: AbortSignal.timeout(10000)
+    }
+  );
+
+  if (!materialResponse.ok) {
+    error(
+      "Material-Zuordnung fehlgeschlagen: HTTP " +
+      materialResponse.status
+    );
+
+    // Wenn die Zuordnung scheitert, versuchen wir,
+    // die gerade hochgeladene Datei wieder zu entfernen.
+    try {
+      await fetch(
+        storageFileUrl(uploadedFile.$id),
+        {
+          method: "DELETE",
+          headers: apiHeaders(apiKey),
+          signal: AbortSignal.timeout(5000)
+        }
+      );
+    } catch (cleanupError) {
+      error(
+        "Upload-Bereinigung fehlgeschlagen: " +
+        cleanupError.message
+      );
+    }
+
+    return {
+      status: 502,
+      data: {
+        success: false,
+        message:
+          "Die Datei konnte dem Angebot nicht zugeordnet werden."
+      }
+    };
+  }
+
+  const material = await materialResponse.json();
+
+  log("Material erfolgreich hochgeladen und zugeordnet.");
+
+  return {
+    status: 200,
+    data: {
+      success: true,
+      message: "Dokument erfolgreich hochgeladen.",
+      materialId: material.$id,
+      fileId: uploadedFile.$id,
+      angebotId: upload.offerId,
+      title: upload.fileName
+    }
+  };
+}
+
 export default async ({ req, res, log, error }) => {
   const origin = req.headers.origin || "";
+
   const allowedOrigin =
     origin === ALLOWED_ORIGIN ? origin : "";
 
@@ -224,12 +673,24 @@ export default async ({ req, res, log, error }) => {
 
   let body = req.bodyJson;
 
-  if (!body || typeof body !== "object" || Array.isArray(body)) {
+  if (
+    !body ||
+    typeof body !== "object" ||
+    Array.isArray(body)
+  ) {
     try {
       body = JSON.parse(req.bodyText || "{}");
     } catch {
       body = {};
     }
+  }
+
+  if (
+    !body ||
+    typeof body !== "object" ||
+    Array.isArray(body)
+  ) {
+    body = {};
   }
 
   const password = body.password;
@@ -262,65 +723,16 @@ export default async ({ req, res, log, error }) => {
     }, allowedOrigin);
   }
 
- if (action !== "update" && action !== "create") {
-  return respond(res, 400, {
-    success: false,
-    message: "Unbekannte Aktion."
-  }, allowedOrigin);
-}
-
- const rowId = body.rowId;
-
-// Nur beim Bearbeiten ist eine bestehende Angebots-ID nötig.
-if (action === "update") {
   if (
-    typeof rowId !== "string" ||
-    !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,35}$/.test(rowId)
+    action !== "update" &&
+    action !== "create" &&
+    action !== "uploadMaterial"
   ) {
     return respond(res, 400, {
       success: false,
-      message: "Ungültige Angebots-ID."
+      message: "Unbekannte Aktion."
     }, allowedOrigin);
   }
-}
-
-// Beim Anlegen darf keine bestehende ID übermittelt werden.
-if (action === "create" && rowId !== undefined) {
-  return respond(res, 400, {
-    success: false,
-    message: "Beim Anlegen darf keine Angebots-ID angegeben werden."
-  }, allowedOrigin);
-}
-
-try {
-  validateChanges(body.changes);
-
-  if (action === "create") {
-    const requiredFields = [
-      "Titel_des_Angebots",
-      "Platz_fuer_wie_viele",
-      "Beschreibung",
-      "Bereich",
-      "Format",
-      "Klassenstufe",
-      "Kontakt_Mail",
-      "Aktiv"
-    ];
-
-    for (const field of requiredFields) {
-      if (!Object.hasOwn(body.changes, field)) {
-        throw new Error(
-          "Pflichtfeld fehlt: " + field
-        );
-      }
-    }
-  }
-} catch (err) {
-  return respond(res, 400, {
-    success: false,
-    message: err.message
-  }, allowedOrigin);
-}
 
   const apiKey =
     process.env.MINT_ADMIN_API_KEY ||
@@ -335,75 +747,41 @@ try {
     }, allowedOrigin);
   }
 
-const baseUrl =
-  APPWRITE_ENDPOINT +
-  "/tablesdb/" +
-  encodeURIComponent(DATABASE_ID) +
-  "/tables/" +
-  encodeURIComponent(TABLE_ID) +
-  "/rows";
-
-const url = action === "create"
-  ? baseUrl
-  : baseUrl + "/" + encodeURIComponent(rowId);
-
   try {
-  const response = await fetch(url, {
-  method: action === "create" ? "POST" : "PATCH",
-  headers: {
-    "Content-Type": "application/json",
-    "X-Appwrite-Project": PROJECT_ID,
-    "X-Appwrite-Key": apiKey
-  },
-  body: JSON.stringify(
-    action === "create"
-      ? {
-          rowId: "unique()",
-          data: body.changes
-        }
-      : {
-          data: body.changes
-        }
-  ),
-  signal: AbortSignal.timeout(10000)
-});
+    let outcome;
 
-    const result = await response.json();
-
-    if (!response.ok) {
-      error(
-        "Appwrite-Update fehlgeschlagen. Status: " +
-        response.status
+    if (action === "uploadMaterial") {
+      outcome = await uploadMaterial(
+        body,
+        apiKey,
+        log,
+        error
       );
-
-      return respond(res, response.status === 404 ? 404 : 500, {
-        success: false,
-        message: response.status === 404
-          ? "Angebot nicht gefunden."
-          : "Das Angebot konnte nicht gespeichert werden."
-      }, allowedOrigin);
+    } else {
+      outcome = await saveOffer(
+        action,
+        body,
+        apiKey
+      );
     }
 
-log(
-  action === "create"
-    ? "Neues Angebot erfolgreich angelegt."
-    : "Angebot erfolgreich aktualisiert."
-);
-
-return respond(res, 200, {
-  success: true,
-  message: action === "create"
-    ? "Neues Angebot erfolgreich angelegt."
-    : "Angebot erfolgreich gespeichert.",
-  rowId: result.$id
-}, allowedOrigin);
+    return respond(
+      res,
+      outcome.status,
+      outcome.data,
+      allowedOrigin
+    );
 
   } catch (err) {
-    error("Fehler beim Speichern: " + err.message);
+    error(
+      "Verwaltungsaktion fehlgeschlagen: " +
+      err.message
+    );
 
     return respond(res, 500, {
       success: false,
-      message: "Verbindungsfehler beim Speichern."
+      message:
+        "Die Aktion konnte nicht abgeschlossen werden."
     }, allowedOrigin);
   }
 };
